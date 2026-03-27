@@ -13,7 +13,7 @@ class Empleado(models.Model):
     telefono_empleado = models.CharField(max_length=20)
     direccion_empleado = models.CharField(max_length=100)
 
-    hash_contrasena_empleado = models.CharField(max_length=60)
+    hash_contrasena_empleado = models.CharField(max_length=200)
 
     codigo_perfil_empleado = models.IntegerField()
 
