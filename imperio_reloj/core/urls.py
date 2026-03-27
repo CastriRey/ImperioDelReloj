@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ClienteViewSet, EmpleadoViewset, listar_clientes, login_empleado, crear_empleado
+from .views import ClienteViewSet, EmpleadoViewset, listar_clientes, login_empleado, crear_empleado, crear_cliente
 
 
 
@@ -13,5 +13,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('clientes/', listar_clientes,),
     path('login/', login_empleado),
-    path('crear-empleado/', crear_empleado)
+    path('crear-empleado/', crear_empleado),
+    path('crear-cliente/', crear_cliente)
 ]

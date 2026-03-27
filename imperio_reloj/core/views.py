@@ -1,10 +1,13 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
 from .models import Cliente, Empleado
 from .serializers import ClienteSerializer, EmpleadoSerializer
 from django.contrib.auth.hashers import check_password, make_password
+from django.db import connection
 
 
 # Create your views here.
@@ -23,11 +26,17 @@ class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
 
+# @api_view(['GET'])
+# def listar_clientes(request):
+#     clientes = Cliente.objects.all()
+#     serializer = ClienteSerializer(clientes, many=True)
+#     return Response(serializer.data)
+
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def listar_clientes(request):
-    clientes = Cliente.objects.all()
-    serializer = ClienteSerializer(clientes, many=True)
-    return Response(serializer.data)
+    clientes = Cliente.objects.all().values()
+    return Response(clientes)
 
 # Login del Empleado
 @api_view(['POST'])
@@ -35,27 +44,48 @@ def login_empleado(request):
     correo = request.data.get('correo')
     contrasena = request.data.get('contrasena')
 
+    if not correo or not contrasena:
+        return Response(
+            {
+                "error": "Correo y contraseña son obligatorios"
+            }, status= 400
+        )
+
     try:
         empleado = Empleado.objects.get(correo_empleado = correo)
 
-        # Validar Contraseña
-        if check_password(contrasena, empleado.hash_contrasena_empleado):
-            return Response({
-                "mensaje": "Login Exitoso",
-                "empleado": {
-                    "id": empleado.identificacion_empleado,
-                    "nombre": empleado.nombre_empleado,
-                    "correo": empleado.correo_empleado
-                }
-            })
-        else:
+        if not check_password(contrasena, empleado.hash_contrasena_empleado):
             return Response(
-            {
-                "error": "Contraseña incorrecta"
-            }, status = 401)
+                {
+                    "error:": "Credenciales invalidas"
+                }, status= 401
+            )
         
+        # Generar Token Manual
+        refresh = RefreshToken()
+        refresh['empleado_id'] = empleado.identificacion_empleado
+        refresh['correo'] = empleado.correo_empleado
+        refresh['perfil'] = empleado.codigo_perfil_empleado
+
+        # Validar Contraseña
+        return Response({
+            "mensaje": "Login Exitoso",
+            "empleado": {
+                "id": empleado.identificacion_empleado,
+                "nombre": empleado.nombre_empleado,
+                "correo": empleado.correo_empleado,
+                "perfil": empleado.codigo_perfil_empleado
+            },
+            "access": str(refresh.access_token),
+            "refresh": str(refresh)
+        })
+
     except Empleado.DoesNotExist:
-        return Response({"error": "Empleado no encontrado"}, status = 404)
+        return Response(
+            {
+                "error": "Empleado no encontrado"
+            }, status = 404
+        )
 
 @api_view(['POST'])
 def crear_empleado(request):
@@ -104,3 +134,60 @@ def crear_empleado(request):
     
     except Exception as e:
         return Response({"error": str(e)}, status=400)
+    
+@api_view(['POST'])
+def crear_cliente(request): 
+    try:
+        campos_obligatorios = [
+            'identificacion',
+            'nombre',
+            'primer_apellido',
+            'empleado'
+        ]
+
+        for campo in campos_obligatorios:
+            if not request.data.get(campo):
+                return Response(
+                    {
+                        "error": f"El campo {campo} es obligatorio"
+                    }
+                )
+        
+        # Validar que el empleado si exista
+        if not Empleado.objects.filter(
+            identificacion_empleado=request.data.get('empleado')
+        ).exists():
+            return Response(
+                {
+                    "error": "El empleado no existe"
+                }, status=400
+            )
+        
+        cliente = Cliente(
+            identificacion_cliente = request.data.get('identificacion'),
+            nombre_cliente = request.data.get('nombre'),
+            primer_apellido_cliente = request.data.get('primer_apellido'),
+            segundo_apellido_cliente = request.data.get('segundo_apellido'),
+            correo_cliente = request.data.get('correo'),
+            telefono_cliente = request.data.get('telefono'),
+            identificacion_empleado = request.data.get('empleado'),
+            comentarios = request.data.get('comentarios')
+        )
+
+        cliente.save()
+
+        # Mostrar la última consulta ejecutada
+        print(connection.queries[-1])
+
+        return Response(
+            {
+                "mensaje": "Cliente creado correctamente"
+            }
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )

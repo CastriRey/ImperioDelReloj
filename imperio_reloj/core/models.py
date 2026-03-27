@@ -37,16 +37,18 @@ class Cliente(models.Model):
     correo_cliente = models.EmailField(max_length=100, unique=True, null=True, blank=True)
     telefono_cliente = models.CharField(max_length=20, null=True, blank=True)
 
-    fecha_registro_cliente = models.DateField()
+    # fecha_registro_cliente = models.DateField()
+
+    identificacion_empleado = models.IntegerField()
 
     comentarios = models.CharField(max_length=150, null=True, blank=True)
 
     # Clave Foranea de la tabla Clientes hacia Empleados por 'identificacion_empleado'
-    empleado = models.ForeignKey(
-        Empleado,
-        on_delete=models.DO_NOTHING,
-        db_column='IDENTIFICACION_EMPLEADO'
-    )
+    # empleado = models.ForeignKey(
+    #     Empleado,
+    #     on_delete=models.DO_NOTHING,
+    #     db_column='IDENTIFICACION_EMPLEADO'
+    # )
 
     class Meta:
         db_table = 'CLIENTES'
