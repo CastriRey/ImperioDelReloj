@@ -8,7 +8,7 @@ from .models import Cliente, Empleado
 from .serializers import ClienteSerializer, EmpleadoSerializer
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import connection
-from .utils.permissions import validar_permiso
+from .utils.permissions import validar_permiso, PermisoDinamico
 from .utils.authentication import CustomJWTAuthentication
 
 # Create your views here.
@@ -139,14 +139,15 @@ def crear_empleado(request):
     
 @api_view(['POST'])
 @authentication_classes([CustomJWTAuthentication])
+@permission_classes([PermisoDinamico])
 def crear_cliente(request): 
 
-    if not validar_permiso(request, 'POST'):
-        return Response(
-            {
-                "error": "No tienes permiso para realizar esta acción"
-            }, status = 403
-        )
+    # if not validar_permiso(request, 'POST'):
+    #     return Response(
+    #         {
+    #             "error": "No tienes permiso para realizar esta acción"
+    #         }, status = 403
+    #     )
     
     print("Ya pasé por aquí")
 
@@ -154,9 +155,11 @@ def crear_cliente(request):
         campos_obligatorios = [
             'identificacion',
             'nombre',
-            'primer_apellido',
-            'empleado'
+            'primer_apellido'
         ]
+
+        empleado_id = request.user.get('empleado_id')
+        print(f'empleado_id: {empleado_id}')
 
         for campo in campos_obligatorios:
             if not request.data.get(campo):
@@ -168,8 +171,7 @@ def crear_cliente(request):
         
         # Validar que el empleado si exista
         if not Empleado.objects.filter(
-            identificacion_empleado=request.data.get('empleado')
-        ).exists():
+            identificacion_empleado=empleado_id).exists():
             return Response(
                 {
                     "error": "El empleado no existe"
@@ -183,7 +185,7 @@ def crear_cliente(request):
             segundo_apellido_cliente = request.data.get('segundo_apellido'),
             correo_cliente = request.data.get('correo'),
             telefono_cliente = request.data.get('telefono'),
-            identificacion_empleado = request.data.get('empleado'),
+            identificacion_empleado = empleado_id,
             comentarios = request.data.get('comentarios')
         )
 
