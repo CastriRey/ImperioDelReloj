@@ -56,3 +56,36 @@ class Cliente(models.Model):
 
     def __str__(self):
         return f"{self.nombre_cliente} {self.primer_apellido_cliente}"
+    
+# =========================
+# PERFILES, RUTAS Y PERMISOS
+# =========================
+
+class Perfiles(models.Model):
+    codigo_perfil = models.IntegerField(primary_key=True)
+    nombre_perfil = models.CharField(max_length=50)
+    codigo_rol = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'PERFILES'
+
+class Permiso(models.Model):
+    codigo_perfil_permiso = models.IntegerField(primary_key=True)
+    codigo_ruta_permiso = models.IntegerField()
+    insertar = models.CharField(max_length=1)
+    modificar = models.CharField(max_length=1)
+    eliminar = models.CharField(max_length=1)
+
+    class Meta:
+        managed = False
+        db_table = 'PERMISOS'
+
+class Ruta(models.Model):
+    codigo_ruta = models.IntegerField(primary_key=True)
+    nombre_ruta = models.CharField(max_length=50)
+    url_ruta = models.CharField(max_length=200)
+
+    class Meta:
+        managed = False
+        db_table = 'RUTAS'

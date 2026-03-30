@@ -1,14 +1,15 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated 
 from .models import Cliente, Empleado
 from .serializers import ClienteSerializer, EmpleadoSerializer
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import connection
-
+from .utils.permissions import validar_permiso
+from .utils.authentication import CustomJWTAuthentication
 
 # Create your views here.
 
@@ -63,6 +64,7 @@ def login_empleado(request):
         
         # Generar Token Manual
         refresh = RefreshToken()
+
         refresh['empleado_id'] = empleado.identificacion_empleado
         refresh['correo'] = empleado.correo_empleado
         refresh['perfil'] = empleado.codigo_perfil_empleado
@@ -136,7 +138,18 @@ def crear_empleado(request):
         return Response({"error": str(e)}, status=400)
     
 @api_view(['POST'])
+@authentication_classes([CustomJWTAuthentication])
 def crear_cliente(request): 
+
+    if not validar_permiso(request, 'POST'):
+        return Response(
+            {
+                "error": "No tienes permiso para realizar esta acción"
+            }, status = 403
+        )
+    
+    print("Ya pasé por aquí")
+
     try:
         campos_obligatorios = [
             'identificacion',
@@ -188,6 +201,7 @@ def crear_cliente(request):
     except Exception as e:
         return Response(
             {
-                "error": str(e)
+                "error": str(e),
+                "mensaje": "Ya pasé por aquí"
             }, status=400
         )
