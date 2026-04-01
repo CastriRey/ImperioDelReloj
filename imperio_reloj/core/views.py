@@ -28,6 +28,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
 
 # @api_view(['GET'])
+
 # def listar_clientes(request):
 #     clientes = Cliente.objects.all()
 #     serializer = ClienteSerializer(clientes, many=True)
@@ -39,52 +40,6 @@ class ClienteViewSet(viewsets.ModelViewSet):
 #     clientes = Cliente.objects.all().values()
 #     return Response(clientes)
 
-@api_view(['GET'])
-def listar_clientes(request):
-
-    try:
-        print('USER:', request.user)
-        print('HEADER:', request.headers.get('Authorization'))
-
-        # 🔎 Parámetros de filtro
-        nombre = request.query_params.get('nombre')
-        correo = request.query_params.get('correo')
-
-        # 📦 Query base (TODOS los clientes)
-        clientes = Cliente.objects.all()
-
-        # 🔍 FILTROS DINÁMICOS
-        if nombre:
-            clientes = clientes.filter(nombre_cliente__icontains=nombre)
-
-        if correo:
-            clientes = clientes.filter(correo_cliente__icontains=correo)
-
-        # 🔽 ORDENAMIENTO
-        clientes = clientes.order_by('-identificacion_cliente')
-
-        # 📊 SERIALIZACIÓN MANUAL
-        data = []
-
-        for cliente in clientes:
-            data.append({
-                "identificacion": cliente.identificacion_cliente,
-                "nombre": cliente.nombre_cliente,
-                "primer_apellido": cliente.primer_apellido_cliente,
-                "segundo_apellido": cliente.segundo_apellido_cliente,
-                "correo": cliente.correo_cliente,
-                "telefono": cliente.telefono_cliente,
-                "empleado": cliente.identificacion_empleado,
-                "comentarios": cliente.comentarios
-            })
-
-        return Response(data)
-
-    except Exception as e:
-        print("ERROR:", str(e))
-        return Response({
-            "error": str(e)
-        }, status=400)
 
 # Login del Empleado
 @api_view(['POST'])
@@ -143,23 +98,77 @@ def login_empleado(request):
     #         }, status = 404
     #     )
 
-@api_view(['POST'])
-def crear_empleado(request):
-    try:
+@api_view(['GET'])
+def listar_clientes(request):
 
-        #Validar Campos Obligatorios
+    try:
+        print('USER:', request.user)
+        print('HEADER:', request.headers.get('Authorization'))
+
+        # 🔎 Parámetros de filtro
+        nombre = request.query_params.get('nombre')
+        correo = request.query_params.get('correo')
+
+        # 📦 Query base (TODOS los clientes)
+        clientes = Cliente.objects.all()
+
+        # 🔍 FILTROS DINÁMICOS
+        if nombre:
+            clientes = clientes.filter(nombre_cliente__icontains=nombre)
+
+        if correo:
+            clientes = clientes.filter(correo_cliente__icontains=correo)
+
+        # 🔽 ORDENAMIENTO
+        clientes = clientes.order_by('-identificacion_cliente')
+
+        # 📊 SERIALIZACIÓN MANUAL
+        data = []
+
+        for cliente in clientes:
+            data.append({
+                "identificacion": cliente.identificacion_cliente,
+                "nombre": cliente.nombre_cliente,
+                "primer_apellido": cliente.primer_apellido_cliente,
+                "segundo_apellido": cliente.segundo_apellido_cliente,
+                "correo": cliente.correo_cliente,
+                "telefono": cliente.telefono_cliente,
+                "empleado": cliente.identificacion_empleado,
+                "comentarios": cliente.comentarios
+            })
+
+        return Response(data)
+
+    except Exception as e:
+        print("ERROR:", str(e))
+        return Response({
+            "error": str(e)
+        }, status=400)
+    
+
+@api_view(['POST'])
+def crear_cliente(request): 
+
+    # if not validar_permiso(request, 'POST'):
+    #     return Response(
+    #         {
+    #             "error": "No tienes permiso para realizar esta acción"
+    #         }, status = 403
+    #     )
+    
+    print("Ya pasé por aquí")
+
+    try:
         campos_obligatorios = [
             'identificacion',
             'nombre',
             'primer_apellido',
-            'correo',
-            'telefono',
-            'direccion',
-            'contrasena',
-            'codigo_perfil'
+            'empleado_id'
         ]
 
-        # Verificar cada campo
+        empleado_id = request.data.get('empleado_id')
+        print(f'empleado_id: {empleado_id}')
+
         for campo in campos_obligatorios:
             if not request.data.get(campo):
                 return Response(
@@ -167,49 +176,75 @@ def crear_empleado(request):
                         "error": f"El campo {campo} es obligatorio"
                     }, status=400
                 )
-            
-        # Validar si el empleado ya existe
-        if Empleado.objects.filter(identificacion_empleado=request.data.get('identificacion')).exists():
+        
+        # Datos a validar
+        identificacion = request.data.get('identificacion')
+        correo = request.data.get('correo')
+        empleado_id = request.data.get('empleado_id')
+        telefono = request.data.get('telefono')
+
+        # Validar que el cliente no exista
+        if Cliente.objects.filter(identificacion_cliente=identificacion).exists():
             return Response(
                 {
-                    "error": "El empleado ya existe"
+                    "error": "El cliente ya existe"
                 }, status=400
             )
         
-        # Validar longitud de la contraseña
-        if len(request.data.get('contrasena')) < 8:
-            return Response(
-                {
-                    "error": "La contraseña es demasiado cort"
-                }, status=400
-            )
-
-        # Validar si el correo ya existe
-        if Empleado.objects.filter(correo_empleado=request.data.get('correo')).exists():
-            return Response(
-                {
-                    "error": "El correo ya existe"
-                }, status=400
-            )
+        # Validar que el correo sea unico
+        if correo:
+            if Cliente.objects.filter(correo_cliente=correo).exists():
+                return Response(
+                    {
+                        "error": "El correo ya existe"
+                    }, status=400
+                )
             
-        empleado = Empleado(
-            identificacion_empleado = request.data.get('identificacion'),
-            nombre_empleado = request.data.get('nombre'),
-            primer_apellido_empleado = request.data.get('primer_apellido'),
-            segundo_apellido_empleado = request.data.get('segundo_apellido'),
-            correo_empleado = request.data.get('correo'),
-            telefono_empleado = request.data.get('telefono'),
-            direccion_empleado = request.data.get('direccion'),
-            hash_contrasena_empleado = make_password(request.data.get('contrasena')),
-            codigo_perfil_empleado = request.data.get('codigo_perfil')
+        #Validar longitud del telefono:
+        if telefono and len(telefono) > 20:
+            return Response(
+                {
+                    "error": "El telefono es demasiado largo"
+                }
+            )
+        
+        # Validar que el empleado si exista
+        if not Empleado.objects.filter(identificacion_empleado=empleado_id).exists():
+            return Response(
+                {
+                    "error": "El empleado no existe"
+                }, status=400
+            )
+        
+        cliente = Cliente(
+            identificacion_cliente = identificacion,
+            nombre_cliente = request.data.get('nombre'),
+            primer_apellido_cliente = request.data.get('primer_apellido'),
+            segundo_apellido_cliente = request.data.get('segundo_apellido'),
+            correo_cliente = correo,
+            telefono_cliente = telefono,
+            identificacion_empleado = empleado_id,
+            comentarios = request.data.get('comentarios')
         )
 
-        empleado.save()
+        cliente.save()
 
-        return Response({"mensaje": "Empleado creado correctamente"})
+        # Mostrar la última consulta ejecutada
+        print(connection.queries[-1])
+
+        return Response(
+            {
+                "mensaje": "Cliente creado correctamente"
+            }
+        )
     
     except Exception as e:
-        return Response({"error": str(e)}, status=400)
+        return Response(
+            {
+                "error": str(e),
+                "mensaje": "Ya pasé por aquí"
+            }, status=400
+        )
     
 
 @api_view(['GET'])
@@ -329,7 +364,7 @@ def actualizar_cliente(request, id):
 def eliminar_cliente(request, id):
 
     try:
-        cliente = Cliente.objects.filter(identificacion_cliente=id)
+        cliente = Cliente.objects.get(identificacion_cliente=id)
         cliente.delete()
 
         return Response(
@@ -353,29 +388,95 @@ def eliminar_cliente(request, id):
         )
 
 
-@api_view(['POST'])
-def crear_cliente(request): 
-
-    # if not validar_permiso(request, 'POST'):
-    #     return Response(
-    #         {
-    #             "error": "No tienes permiso para realizar esta acción"
-    #         }, status = 403
-    #     )
-    
-    print("Ya pasé por aquí")
+@api_view(['GET'])
+def listar_empleados(request):
 
     try:
+        nombre = request.query_params.get('nombre')
+        correo = request.query_params.get('correo')
+
+        empleados = Empleado.objects.all()
+
+        if nombre:
+            empleados = empleados.filter(nombre_empleado__icontains=nombre)
+
+        if correo:
+            empleados = empleados.filter(correo_empleado__icontains=correo)
+
+        empleados = empleados.order_by('-identificacion_empleado')
+
+        data = []
+
+        for emp in empleados:
+            data.append(
+                {
+                    "identificacion": emp.identificacion_empleado,
+                    "nombre": emp.nombre_empleado,
+                    "primer_apellido": emp.primer_apellido_empleado,
+                    "segundo_apellido": emp.segundo_apellido_empleado,
+                    "correo": emp.correo_empleado,
+                    "telefono": emp.telefono_empleado,
+                    "direccion": emp.direccion_empleado,
+                    "perfil": emp.codigo_perfil_empleado
+                }
+            )
+
+        return Response(data)
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+
+@api_view(['GET'])
+def obtener_empleado(request, id):
+
+    try:
+        emp = Empleado.objects.get(identificacion_empleado=id)
+
+        data = {
+            "identificacion": emp.identificacion_empleado,
+            "nombre": emp.nombre_empleado,
+            "primer_apellido": emp.primer_apellido_empleado,
+            "segundo_apellido": emp.segundo_apellido_empleado,
+            "correo": emp.correo_empleado,
+            "telefono": emp.telefono_empleado,
+            "direccion": emp.direccion_empleado,
+            "perfil": emp.codigo_perfil_empleado
+        }
+
+        return Response(data)
+
+    except Empleado.DoesNotExist:
+        return Response({
+            "error": "Empleado no encontrado"
+        }, status=404)
+
+    except Exception as e:
+        return Response({
+            "error": str(e)
+        }, status=400)
+
+@api_view(['POST'])
+def crear_empleado(request):
+    try:
+
+        #Validar Campos Obligatorios
         campos_obligatorios = [
             'identificacion',
             'nombre',
             'primer_apellido',
-            'empleado_id'
+            'correo',
+            'telefono',
+            'direccion',
+            'contrasena',
+            'codigo_perfil'
         ]
 
-        empleado_id = request.data.get('empleado_id')
-        print(f'empleado_id: {empleado_id}')
-
+        # Verificar cada campo
         for campo in campos_obligatorios:
             if not request.data.get(campo):
                 return Response(
@@ -383,72 +484,148 @@ def crear_cliente(request):
                         "error": f"El campo {campo} es obligatorio"
                     }, status=400
                 )
-        
-        # Datos a validar
-        identificacion = request.data.get('identificacion')
-        correo = request.data.get('correo')
-        empleado_id = request.data.get('empleado_id')
-        telefono = request.data.get('telefono')
-
-        # Validar que el cliente no exista
-        if Cliente.objects.filter(identificacion_cliente=identificacion).exists():
+            
+        # Validar si el empleado ya existe
+        if Empleado.objects.filter(identificacion_empleado=request.data.get('identificacion')).exists():
             return Response(
                 {
-                    "error": "El cliente ya existe"
+                    "error": "El empleado ya existe"
                 }, status=400
             )
         
-        # Validar que el correo sea unico
-        if correo:
-            if Cliente.objects.filter(correo_cliente=correo).exists():
-                return Response(
+        # Validar longitud nombre
+        if len(request.data.get('nombre')) > 40:
+            return Response(
                     {
-                        "error": "El correo ya existe"
+                        "error": "Nombre demasiado largo"
+                    }, status=400
+                )
+        
+        # Validar longitud de la contraseña
+        if len(request.data.get('contrasena')) < 8:
+            return Response(
+                {
+                    "error": "La contraseña debe tener minimo 8 caracteres"
+                }, status=400
+            )
+
+        # Validar si el correo ya existe
+        if Empleado.objects.filter(correo_empleado=request.data.get('correo')).exists():
+            return Response(
+                {
+                    "error": "El correo ya existe"
+                }, status=400
+            )
+            
+        empleado = Empleado(
+            identificacion_empleado = request.data.get('identificacion'),
+            nombre_empleado = request.data.get('nombre'),
+            primer_apellido_empleado = request.data.get('primer_apellido'),
+            segundo_apellido_empleado = request.data.get('segundo_apellido'),
+            correo_empleado = request.data.get('correo'),
+            telefono_empleado = request.data.get('telefono'),
+            direccion_empleado = request.data.get('direccion'),
+            hash_contrasena_empleado = make_password(request.data.get('contrasena')),
+            codigo_perfil_empleado = request.data.get('codigo_perfil')
+        )
+
+        empleado.save()
+
+        return Response({"mensaje": "Empleado creado correctamente"})
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+
+@api_view(['PUT'])
+def actualizar_empleado(request, id):
+    try:
+        emp = Empleado.objects.get(identificacion_empleado = id)
+
+        nombre = request.data.get('nombre')
+        correo = request.data.get('correo')
+        telefono = request.data.get('telefono')
+        direccion = request.data.get('direccion')
+        contrasena = request.data.get('contrasena')
+
+        # Validaciones
+        if correo:
+            if Empleado.objects.filter(correo_empleado=correo)\
+                .exclude(identificacion_empleado=id).exists():
+                return Response (
+                    {
+                        "error": "El correo ya está en uso"
                     }, status=400
                 )
             
-        #Validar longitud del telefono:
-        if telefono and len(telefono) > 20:
-            return Response(
-                {
-                    "error": "El telefono es demasiado largo"
-                }
-            )
-        
-        # Validar que el empleado si exista
-        if not Empleado.objects.filter(identificacion_empleado=empleado_id).exists():
-            return Response(
-                {
-                    "error": "El empleado no existe"
-                }, status=400
-            )
-        
-        cliente = Cliente(
-            identificacion_cliente = identificacion,
-            nombre_cliente = request.data.get('nombre'),
-            primer_apellido_cliente = request.data.get('primer_apellido'),
-            segundo_apellido_cliente = request.data.get('segundo_apellido'),
-            correo_cliente = correo,
-            telefono_cliente = telefono,
-            identificacion_empleado = empleado_id,
-            comentarios = request.data.get('comentarios')
-        )
+        if contrasena:
+            if len(contrasena) < 8:
+                return Response(
+                    {
+                        "error": "La contraseña debe tener minimo 8 caracteres"
+                    }, status=400
+                )
+            
+        if nombre:
+            emp.nombre_empleado = nombre
 
-        cliente.save()
+        if correo:
+            emp.correo_empleado = correo
 
-        # Mostrar la última consulta ejecutada
-        print(connection.queries[-1])
+        if telefono:
+            emp.telefono_empleado = telefono
+
+        if direccion:
+            emp.direccion_empleado = direccion
+        
+        if contrasena:
+            emp.hash_contrasena_empleado = make_password(contrasena)
+
+        emp.save()
 
         return Response(
             {
-                "mensaje": "Cliente creado correctamente"
+                "mensaje": "Empleado actualizado correctamente"
             }
+        )
+    
+    except Empleado.DoesNotExist:
+        return Response(
+            {
+                "error": "Empleado no encontrado"
+            }, status=404
         )
     
     except Exception as e:
         return Response(
             {
-                "error": str(e),
-                "mensaje": "Ya pasé por aquí"
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['DELETE'])
+def eliminar_empleado(reques, id):
+    
+    try:
+        emp = Empleado.objects.get(identificacion_empleado = id)
+        emp.delete()
+
+        return Response(
+            {
+            "mensaje": "Empleado eliminado correctamente"
+            }
+        )    
+    
+    except Empleado.DoesNotExist:
+        return Response(
+            {
+                "error": "Empleado no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
             }, status=400
         )
