@@ -22,7 +22,7 @@ class Empleado(models.Model):
         managed = False
 
     def __str__(self):
-        return f"{self.nombre_empleado} {self.primer_apellido_empleado}"
+        return f"{self.nombre_empleado} {self.primer_apellido_empleado} {self.correo_empleado}"
     
 # =========================
 # CLIENTES
@@ -76,6 +76,7 @@ class Permiso(models.Model):
     insertar = models.CharField(max_length=1)
     modificar = models.CharField(max_length=1)
     eliminar = models.CharField(max_length=1)
+    consultar = models.CharField(max_length=1)
 
     class Meta:
         managed = False

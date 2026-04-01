@@ -11,7 +11,7 @@ router.register(r'empleados', EmpleadoViewset)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('clientes/', listar_clientes,),
+    path('clientes-test/', listar_clientes),
     path('login/', login_empleado),
     path('crear-empleado/', crear_empleado),
     path('crear-cliente/', crear_cliente)

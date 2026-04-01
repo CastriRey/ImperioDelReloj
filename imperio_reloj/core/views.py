@@ -8,7 +8,7 @@ from .models import Cliente, Empleado
 from .serializers import ClienteSerializer, EmpleadoSerializer
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import connection
-from .utils.permissions import validar_permiso, PermisoDinamico
+from .utils.permissions import PermisoDinamico
 from .utils.authentication import CustomJWTAuthentication
 
 # Create your views here.
@@ -33,61 +33,115 @@ class ClienteViewSet(viewsets.ModelViewSet):
 #     serializer = ClienteSerializer(clientes, many=True)
 #     return Response(serializer.data)
 
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def listar_clientes(request):
+#     clientes = Cliente.objects.all().values()
+#     return Response(clientes)
+
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def listar_clientes(request):
-    clientes = Cliente.objects.all().values()
-    return Response(clientes)
+
+    try:
+        print('USER:', request.user)
+        print('HEADER:', request.headers.get('Authorization'))
+
+        # 🔎 Parámetros de filtro
+        nombre = request.query_params.get('nombre')
+        correo = request.query_params.get('correo')
+
+        # 📦 Query base (TODOS los clientes)
+        clientes = Cliente.objects.all()
+
+        # 🔍 FILTROS DINÁMICOS
+        if nombre:
+            clientes = clientes.filter(nombre_cliente__icontains=nombre)
+
+        if correo:
+            clientes = clientes.filter(correo_cliente__icontains=correo)
+
+        # 🔽 ORDENAMIENTO
+        clientes = clientes.order_by('-identificacion_cliente')
+
+        # 📊 SERIALIZACIÓN MANUAL
+        data = []
+
+        for cliente in clientes:
+            data.append({
+                "identificacion": cliente.identificacion_cliente,
+                "nombre": cliente.nombre_cliente,
+                "primer_apellido": cliente.primer_apellido_cliente,
+                "segundo_apellido": cliente.segundo_apellido_cliente,
+                "correo": cliente.correo_cliente,
+                "telefono": cliente.telefono_cliente,
+                "empleado": cliente.identificacion_empleado,
+                "comentarios": cliente.comentarios
+            })
+
+        return Response(data)
+
+    except Exception as e:
+        print("ERROR:", str(e))
+        return Response({
+            "error": str(e)
+        }, status=400)
 
 # Login del Empleado
 @api_view(['POST'])
 def login_empleado(request):
-    correo = request.data.get('correo')
-    contrasena = request.data.get('contrasena')
+    return Response(
+        {
+            "mensaje": "Login desactivado temporalmente"
+        }
+    )
+    # correo = request.data.get('correo')
+    # contrasena = request.data.get('contrasena')
 
-    if not correo or not contrasena:
-        return Response(
-            {
-                "error": "Correo y contraseña son obligatorios"
-            }, status= 400
-        )
+    # if not correo or not contrasena:
+    #     return Response(
+    #         {
+    #             "error": "Correo y contraseña son obligatorios"
+    #         }, status= 400
+    #     )
 
-    try:
-        empleado = Empleado.objects.get(correo_empleado = correo)
+    # try:
+    #     empleado = Empleado.objects.get(correo_empleado = correo)
 
-        if not check_password(contrasena, empleado.hash_contrasena_empleado):
-            return Response(
-                {
-                    "error:": "Credenciales invalidas"
-                }, status= 401
-            )
+    #     if not check_password(contrasena, empleado.hash_contrasena_empleado):
+    #         return Response(
+    #             {
+    #                 "error:": "Credenciales invalidas"
+    #             }, status= 401
+    #         )
         
-        # Generar Token Manual
-        refresh = RefreshToken()
+    #     # Generar Token Manual
+    #     refresh = RefreshToken()
 
-        refresh['empleado_id'] = empleado.identificacion_empleado
-        refresh['correo'] = empleado.correo_empleado
-        refresh['perfil'] = empleado.codigo_perfil_empleado
+        
 
-        # Validar Contraseña
-        return Response({
-            "mensaje": "Login Exitoso",
-            "empleado": {
-                "id": empleado.identificacion_empleado,
-                "nombre": empleado.nombre_empleado,
-                "correo": empleado.correo_empleado,
-                "perfil": empleado.codigo_perfil_empleado
-            },
-            "access": str(refresh.access_token),
-            "refresh": str(refresh)
-        })
+    #     refresh['empleado_id'] = empleado.identificacion_empleado
+    #     refresh['correo'] = empleado.correo_empleado
+    #     refresh['perfil'] = empleado.codigo_perfil_empleado
 
-    except Empleado.DoesNotExist:
-        return Response(
-            {
-                "error": "Empleado no encontrado"
-            }, status = 404
-        )
+    #     # Validar Contraseña
+    #     return Response({
+    #         "mensaje": "Login Exitoso",
+    #         "empleado": {
+    #             "id": empleado.identificacion_empleado,
+    #             "nombre": empleado.nombre_empleado,
+    #             "correo": empleado.correo_empleado,
+    #             "perfil": empleado.codigo_perfil_empleado
+    #         },
+    #         "access": str(refresh.access_token),
+    #         "refresh": str(refresh)
+    #     })
+
+    # except Empleado.DoesNotExist:
+    #     return Response(
+    #         {
+    #             "error": "Empleado no encontrado"
+    #         }, status = 404
+    #     )
 
 @api_view(['POST'])
 def crear_empleado(request):
@@ -105,7 +159,7 @@ def crear_empleado(request):
             'codigo_perfil'
         ]
 
-        #Verificar cada campo
+        # Verificar cada campo
         for campo in campos_obligatorios:
             if not request.data.get(campo):
                 return Response(
@@ -114,10 +168,30 @@ def crear_empleado(request):
                     }, status=400
                 )
             
-        if Empleado.objects.filter(correo_empleado=request.data.get('correo')).exists():
-            return Response({"error": "El correo ya existe"}, status=400)
-            
+        # Validar si el empleado ya existe
+        if Empleado.objects.filter(identificacion_empleado=request.data.get('identificacion')).exists():
+            return Response(
+                {
+                    "error": "El empleado ya existe"
+                }, status=400
+            )
+        
+        # Validar longitud de la contraseña
+        if len(request.data.get('contrasena')) < 8:
+            return Response(
+                {
+                    "error": "La contraseña es demasiado cort"
+                }, status=400
+            )
 
+        # Validar si el correo ya existe
+        if Empleado.objects.filter(correo_empleado=request.data.get('correo')).exists():
+            return Response(
+                {
+                    "error": "El correo ya existe"
+                }, status=400
+            )
+            
         empleado = Empleado(
             identificacion_empleado = request.data.get('identificacion'),
             nombre_empleado = request.data.get('nombre'),
@@ -138,8 +212,6 @@ def crear_empleado(request):
         return Response({"error": str(e)}, status=400)
     
 @api_view(['POST'])
-@authentication_classes([CustomJWTAuthentication])
-@permission_classes([PermisoDinamico])
 def crear_cliente(request): 
 
     # if not validar_permiso(request, 'POST'):
@@ -155,10 +227,11 @@ def crear_cliente(request):
         campos_obligatorios = [
             'identificacion',
             'nombre',
-            'primer_apellido'
+            'primer_apellido',
+            'empleado_id'
         ]
 
-        empleado_id = request.user.get('empleado_id')
+        empleado_id = request.data.get('empleado_id')
         print(f'empleado_id: {empleado_id}')
 
         for campo in campos_obligatorios:
@@ -166,12 +239,42 @@ def crear_cliente(request):
                 return Response(
                     {
                         "error": f"El campo {campo} es obligatorio"
-                    }
+                    }, status=400
                 )
         
+        # Datos a validar
+        identificacion = request.data.get('identificacion')
+        correo = request.data.get('correo')
+        empleado_id = request.data.get('empleado_id')
+        telefono = request.data.get('telefono')
+
+        # Validar que el cliente no exista
+        if Cliente.objects.filter(identificacion_cliente=identificacion).exists():
+            return Response(
+                {
+                    "error": "El cliente ya existe"
+                }, status=400
+            )
+        
+        # Validar que el correo sea unico
+        if correo:
+            if Cliente.objects.filter(correo_cliente=correo).exists():
+                return Response(
+                    {
+                        "error": "El correo ya existe"
+                    }, status=400
+                )
+            
+        #Validar longitud del telefono:
+        if telefono and len(telefono) > 20:
+            return Response(
+                {
+                    "error": "El telefono es demasiado largo"
+                }
+            )
+        
         # Validar que el empleado si exista
-        if not Empleado.objects.filter(
-            identificacion_empleado=empleado_id).exists():
+        if not Empleado.objects.filter(identificacion_empleado=empleado_id).exists():
             return Response(
                 {
                     "error": "El empleado no existe"
@@ -179,12 +282,12 @@ def crear_cliente(request):
             )
         
         cliente = Cliente(
-            identificacion_cliente = request.data.get('identificacion'),
+            identificacion_cliente = identificacion,
             nombre_cliente = request.data.get('nombre'),
             primer_apellido_cliente = request.data.get('primer_apellido'),
             segundo_apellido_cliente = request.data.get('segundo_apellido'),
-            correo_cliente = request.data.get('correo'),
-            telefono_cliente = request.data.get('telefono'),
+            correo_cliente = correo,
+            telefono_cliente = telefono,
             identificacion_empleado = empleado_id,
             comentarios = request.data.get('comentarios')
         )
