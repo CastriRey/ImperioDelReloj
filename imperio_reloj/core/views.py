@@ -211,6 +211,148 @@ def crear_empleado(request):
     except Exception as e:
         return Response({"error": str(e)}, status=400)
     
+
+@api_view(['GET'])
+def obtener_cliente(request, id):
+
+    try:
+        cliente = Cliente.objects.get(identificacion_cliente=id)
+
+        data = {
+            "identificacion": cliente.identificacion_cliente,
+            "nombre": cliente.nombre_cliente,
+            "primer_apellido": cliente.primer_apellido_cliente,
+            "segundo_apellido": cliente.segundo_apellido_cliente,
+            "correo": cliente.correo_cliente,
+            "telefono": cliente.telefono_cliente,
+            "empleado": cliente.identificacion_empleado,
+            "comentarios": cliente.comentarios
+        }
+
+        return Response(data)
+    
+    except Cliente.DoesNotExist:
+        return Response(
+            {
+                "error": "El Cliente no existe"
+            }, status=400
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+
+@api_view(['PUT'])
+def actualizar_cliente(request, id):
+    try:
+        cliente = Cliente.objects.get(identificacion_cliente = id)
+
+        nombre = request.data.get('nombre')
+        primer_apellido = request.data.get('primer_apellido')
+        segundo_apellido = request.data.get('segundo_apellido')
+        correo = request.data.get('correo')
+        telefono = request.data.get('telefono')
+        comentarios = request.data.get('comentarios')
+
+        # Validar longitud del nombre
+        if len(nombre) > 40:
+            return Response(
+                {
+                    "error": "El nombre es demasiado largo"
+                }, status=400
+            )
+        
+        # Validar si el correo ya esta siendo utilizado
+        if correo:
+            if Cliente.objects.filter(correo_cliente=correo)\
+                .exclude(identificacion_cliente=id).exists():
+                return Response(
+                    {
+                        "error": "El correo ya esta en uso"
+                    }, status=400
+                )
+            
+        # Validar longitud del telefono
+        if telefono and len(telefono) > 20:
+            return Response(
+                {
+                    "error": "Telefono demasiado largo"
+                }
+            )
+        
+        # Actualización dinámica (solo lo que venga)
+        if nombre:
+            cliente.nombre_cliente = nombre
+
+        if primer_apellido:
+            cliente.primer_apellido_cliente = primer_apellido
+
+        if segundo_apellido:
+            cliente.segundo_apellido_cliente = segundo_apellido
+
+        if correo:
+            cliente.correo_cliente = correo
+
+        if telefono:
+            cliente.telefono_cliente = telefono
+
+        if comentarios:
+            cliente.comentarios = comentarios
+
+        cliente.save()
+
+        return Response(
+            {
+                "mensaje": "Cliente actualizado correctamente"
+            }
+        )
+    
+    except Cliente.DoesNotExist:
+        return Response (
+            {
+                "error": "Cliente no encontrado"
+            }, status=404
+        )
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+
+@api_view(['DELETE'])
+def eliminar_cliente(request, id):
+
+    try:
+        cliente = Cliente.objects.filter(identificacion_cliente=id)
+        cliente.delete()
+
+        return Response(
+            {
+                "mensaje": "Cliente eliminado correctamente"
+            }
+        )
+
+    except Cliente.DoesNotExist:
+        return Response(
+            {
+                "mensaje": "El cliente no existe"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+
 @api_view(['POST'])
 def crear_cliente(request): 
 
