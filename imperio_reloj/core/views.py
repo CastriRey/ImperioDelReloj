@@ -647,29 +647,136 @@ def crear_venta(request):
         metodo_pago = request.data.get('metodo_pago')
         productos = request.data.get('productos')
 
-        # Validaciones
-        if not cliente_id or not empleado_id or not productos:
+        # Validaciones de campos obligatorios
+        if not cliente_id:
             return Response(
                 {
-                    "error": "Faltan datos obligatorios"
-                }, status= 400
+                    "error": "El campo 'cliente_id' es obligatorio"
+                }, status=400
+            )
+        
+        if not empleado_id:
+            return Response(
+                {
+                    "error": "El campo 'empleado_id' es obligatorio"
+                }, status=400
+            )
+        
+        if not metodo_pago:
+            return Response(
+                {
+                    "error": "El campo 'metodo_pago' es obligatorio"
+                }, status=400
+            )
+        
+        if not productos:
+            return Response(
+                {
+                    "error": "El campo 'productos' es obligatorio"
+                }, status=400
+            )
+        
+        # Validar que productos sea una lista
+        if not isinstance(productos, list):
+            return Response(
+                {
+                    "error": "El campo 'productos' debe ser una lista"
+                }, status=400
+            )
+        
+        # Validar que la lista de productos no esté vacía
+        if len(productos) == 0:
+            return Response(
+                {
+                    "error": "La lista de productos no puede estar vacía"
+                }, status=400
+            )
+        
+        # Validar que el cliente existe
+        try:
+            Cliente.objects.get(identificacion_cliente=cliente_id)
+        except Cliente.DoesNotExist:
+            return Response(
+                {
+                    "error": f"El cliente con ID '{cliente_id}' no existe"
+                }, status=400
+            )
+        
+        # Validar que el empleado existe
+        try:
+            Empleado.objects.get(identificacion_empleado=empleado_id)
+        except Empleado.DoesNotExist:
+            return Response(
+                {
+                    "error": f"El empleado con ID '{empleado_id}' no existe"
+                }, status=400
             )
         
         total = 0
         detalles = []
 
-        for item in productos:
+        for index, item in enumerate(productos):
+            # Validar que cada item sea un diccionario
+            if not isinstance(item, dict):
+                return Response(
+                    {
+                        "error": f"El producto en posición {index} debe ser un objeto"
+                    }, status=400
+                )
+            
             producto_id = item.get('producto_id')
             cantidad = item.get('cantidad')
-
-            producto = Producto.objects.get(codigo_producto = producto_id)
-
+            
+            # Validar que producto_id existe en el item
+            if producto_id is None:
+                return Response(
+                    {
+                        "error": f"El producto en posición {index} no tiene el campo 'producto_id'"
+                    }, status=400
+                )
+            
+            # Validar que cantidad existe en el item
+            if cantidad is None:
+                return Response(
+                    {
+                        "error": f"El producto en posición {index} no tiene el campo 'cantidad'"
+                    }, status=400
+                )
+            
+            # Validar que cantidad sea un número
+            try:
+                cantidad = float(cantidad)
+            except (ValueError, TypeError):
+                return Response(
+                    {
+                        "error": f"La cantidad del producto en posición {index} debe ser un número"
+                    }, status=400
+                )
+            
+            # Validar que cantidad sea positiva
+            if cantidad <= 0:
+                return Response(
+                    {
+                        "error": f"La cantidad del producto en posición {index} debe ser mayor a 0"
+                    }, status=400
+                )
+            
+            # Validar que el producto existe
+            try:
+                producto = Producto.objects.get(codigo_producto=producto_id)
+            except Producto.DoesNotExist:
+                return Response(
+                    {
+                        "error": f"El producto con código '{producto_id}' no existe"
+                    }, status=400
+                )
+            
             # Validar stock del producto
             if producto.controla_stock == 'S':
                 if producto.stock_disponible_producto < cantidad:
                     return Response(
                         {
-                            "error": f"Stock insuficiente del producto {producto.nombre_producto}"
+                            "error": f"Stock insuficiente del producto '{producto.nombre_producto}'. Stock disponible: {producto.stock_disponible_producto}, solicitado: {int(cantidad)}"
                         }, status=400
                     )
                 
@@ -730,3 +837,52 @@ def crear_venta(request):
             }, status=400
         )
         
+'''
+HECHO VÍA GITHUB COPILOT DESDE VSCODE, POR ESO SE VE TAN ORDENADO Y SIN ERRORES DE SINTAXIS, PERO FUNCIONA PERFECTAMENTE
+'''
+@api_view(['GET'])
+def obtener_venta(request, venta_id):
+    try:
+        venta = Venta.objects.get(codigo_venta=venta_id)
+
+        detalles = DetalleVenta.objects.filter(codigo_venta=venta_id)
+
+        data_detalles = []
+
+        for d in detalles:
+            producto = Producto.objects.get(codigo_producto=d.codigo_producto)
+
+            data_detalles.append(
+                {
+                    "codigo del producto": producto.codigo_producto,
+                    "producto": producto.nombre_producto,
+                    "cantidad": d.cantidad_producto,
+                    "precio_unitario": d.precio_unitario_producto
+                }
+            )
+
+        data = {
+            "venta_id": venta.codigo_venta,
+            "cliente_id": venta.identificacion_cliente_venta,
+            "empleado_id": venta.identificacion_empleado_venta,
+            "total": venta.total_venta,
+            "fecha": venta.fecha_venta,
+            "metodo_pago": venta.codigo_metodo_pago,
+            "detalles": data_detalles
+        }
+
+        return Response(data)
+
+    except Venta.DoesNotExist:
+        return Response(
+            {
+                "error": "Venta no encontrada"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
