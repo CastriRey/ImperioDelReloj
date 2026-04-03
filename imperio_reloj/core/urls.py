@@ -26,5 +26,10 @@ urlpatterns = [
     path('tipos_producto/crear/', crear_tipo_producto),
     path('tipos_producto/<int:codigo>/', obtener_tipo_producto),
     path('tipos_producto/<int:codigo>/actualizar/', actualizar_tipo_producto),
-    path('tipos_producto/<int:codigo>/eliminar/', eliminar_tipo_producto)
+    path('tipos_producto/<int:codigo>/eliminar/', eliminar_tipo_producto),
+    path('marcas/', listar_marcas),
+    path('marcas/crear/', crear_marca),
+    path('marcas/<int:codigo>/', obtener_marca),
+    path('marcas/<int:codigo>/actualizar/', actualizar_marca),
+    path('marcas/<int:codigo>/eliminar/', eliminar_marca),
 ]

@@ -1069,3 +1069,159 @@ def eliminar_tipo_producto(request, codigo):
                 "error": str(e)
             }, status=400
         )
+    
+@api_view(['GET'])
+def listar_marcas(request):
+    try:
+        marcas = Marca.objects.all()
+
+        data = []
+
+        for m in marcas:
+            data.append(
+                {
+                    "codigo": m.codigo_marca,
+                    "nombre": m.nombre_marca
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['GET'])
+def obtener_marca(request, codigo):
+    try:
+        marca = Marca.objects.get(codigo_marca=codigo)
+
+        data = {
+            "codigo": marca.codigo_marca,
+            "nombre": marca.nombre_marca
+        }
+
+        return Response(data)
+
+    except Marca.DoesNotExist:
+        return Response(
+            {
+                "error": "Marca no encontrada"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['POST'])
+def crear_marca(request):
+    try:
+        nombre = request.data.get('nombre')
+
+        if not nombre:
+            return Response(
+                {
+                    "error": "El campo 'nombre' es obligatorio"
+                }, status=400
+            )
+        
+        if len(nombre) > 40:
+            return Response(
+                {
+                    "error": "El nombre es demasiado largo"
+                }, status=400
+            )
+        
+        codigo = obtener_siguiente_valor('SEQ_MARCAS')
+
+        marca = Marca(
+            codigo_marca = codigo,
+            nombre_marca = nombre
+        )
+
+        marca.save()
+
+        return Response(
+            {
+                "mensaje": "Marca creada correctamente",
+                "codigo": codigo
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['PUT'])
+def actualizar_marca(request, codigo):
+    try:
+        marca = Marca.objects.get(codigo_marca=codigo)
+
+        nombre = request.data.get('nombre')
+
+        if nombre:
+            if len(nombre) > 40:
+                return Response(
+                    {
+                        "error": "El nombre es demasiado largo"
+                    }, status=400
+                )
+            marca.nombre_marca = nombre
+            marca.save()
+
+        return Response(
+            {
+                "mensaje": "Marca actualizada correctamente"
+            }
+        )
+
+    except Marca.DoesNotExist:
+        return Response(
+            {
+                "error": "Marca no encontrada"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['DELETE'])
+def eliminar_marca(request, codigo):
+    try:
+        marca = Marca.objects.get(codigo_marca=codigo)
+        marca.delete()
+
+        return Response(
+            {
+                "mensaje": "Marca eliminada correctamente"
+            }
+        )
+
+    except Marca.DoesNotExist:
+        return Response(
+            {
+                "error": "Marca no encontrada"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    

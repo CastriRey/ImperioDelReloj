@@ -114,6 +114,14 @@ class TipoProducto(models.Model):
         db_table = 'TIPO_PRODUCTOS'
         managed = False
 
+class Marca(models.Model):
+    codigo_marca = models.IntegerField(primary_key=True)
+    nombre_marca = models.CharField(max_length=20)
+
+    class Meta:
+        db_table = 'MARCAS'
+        managed = False
+
 # =========================
 # VENTAS
 # =========================
