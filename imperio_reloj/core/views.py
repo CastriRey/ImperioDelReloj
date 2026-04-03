@@ -639,6 +639,34 @@ def eliminar_empleado(reques, id):
         )
     
 
+@api_view(['GET'])
+def listar_ventas(request):
+    try:
+        ventas = Venta.objects.all()
+
+        data = []
+
+        for venta in ventas:
+            data.append(
+                {
+                    "codigo_venta": venta.codigo_venta,
+                    "cliente": venta.identificacion_cliente_venta,
+                    "empleado": venta.identificacion_empleado_venta,
+                    "total": venta.total_venta,
+                    "fecha": venta.fecha_venta,
+                    "metodo_pago": venta.codigo_metodo_pago
+                }
+            )
+
+        return Response(data)
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )    
+
 @api_view(['POST'])
 def crear_venta(request):
     try:
@@ -877,6 +905,161 @@ def obtener_venta(request, venta_id):
         return Response(
             {
                 "error": "Venta no encontrada"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+@api_view(['GET'])
+def listar_tipos_producto(request):
+    try:
+        tipos = TipoProducto.objects.all()
+
+        data = []
+
+        for t in tipos:
+            data.append(
+                {
+                    "codigo": t.codigo_tipo_producto,
+                    "nombre": t.nombre_tipo_producto
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['GET'])
+def obtener_tipo_producto(request, codigo):
+    try:
+        tipo = TipoProducto.objects.get(codigo_tipo_producto=codigo)
+
+        data = {
+            "codigo": tipo.codigo_tipo_producto,
+            "nombre": tipo.nombre_tipo_producto
+        }
+
+        return Response(data)
+
+    except TipoProducto.DoesNotExist:
+        return Response(
+            {
+                "error": "Tipo de producto no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['POST'])
+def crear_tipo_producto(request):
+    try:
+        nombre = request.data.get('nombre')
+
+        if not nombre:
+            return Response(
+                {
+                    "error": "El campo 'nombre' es obligatorio"
+                }, status=400
+            )
+        
+        if len(nombre) > 40:
+            return Response(
+                {
+                    "error": "El nombre es demasiado largo"
+                }, status=400
+            )
+        
+        codigo = obtener_siguiente_valor('SEQ_TIPO_PRODUCTOS')
+
+        tipo = TipoProducto(
+            codigo_tipo_producto = codigo,
+            nombre_tipo_producto = nombre
+        )
+
+        tipo.save()
+
+        return Response(
+            {
+                "mensaje": "Tipo de producto creado correctamente",
+                "codigo": codigo
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+@api_view(['PUT'])
+def actualizar_tipo_producto(request, codigo):
+    try:
+        tipo = TipoProducto.objects.get(codigo_tipo_producto=codigo)
+
+        nombre = request.data.get('nombre')
+
+        if nombre:
+            if len(nombre) > 40:
+                return Response(
+                    {
+                        "error": "El nombre es demasiado largo"
+                    }, status=400
+                )
+            tipo.nombre_tipo_producto = nombre
+            tipo.save()
+
+        return Response(
+            {
+                "mensaje": "Tipo de producto actualizado correctamente"
+            }
+        )
+
+    except TipoProducto.DoesNotExist:
+        return Response(
+            {
+                "error": "Tipo de producto no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['DELETE'])
+def eliminar_tipo_producto(request, codigo):
+    try:
+        tipo = TipoProducto.objects.get(codigo_tipo_producto=codigo)
+        tipo.delete()
+
+        return Response(
+            {
+                "mensaje": "Tipo de producto eliminado correctamente"
+            }
+        )
+
+    except TipoProducto.DoesNotExist:
+        return Response(
+            {
+                "error": "Tipo de producto no encontrado"
             }, status=404
         )
     

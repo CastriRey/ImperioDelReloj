@@ -19,6 +19,12 @@ urlpatterns = [
     path('empleados/<int:id>/', obtener_empleado),
     path('empleados/<int:id>/actualizar/', actualizar_empleado),
     path('empleados/<int:id>/eliminar/', eliminar_empleado),
+    path('ventas/', listar_ventas),
     path('ventas/crear/', crear_venta),
-    path('ventas/<int:venta_id>/', obtener_venta)
+    path('ventas/<int:venta_id>/', obtener_venta),
+    path('tipos_producto/', listar_tipos_producto),
+    path('tipos_producto/crear/', crear_tipo_producto),
+    path('tipos_producto/<int:codigo>/', obtener_tipo_producto),
+    path('tipos_producto/<int:codigo>/actualizar/', actualizar_tipo_producto),
+    path('tipos_producto/<int:codigo>/eliminar/', eliminar_tipo_producto)
 ]

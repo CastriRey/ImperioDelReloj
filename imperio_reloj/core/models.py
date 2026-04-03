@@ -106,6 +106,14 @@ class Producto(models.Model):
         db_table = 'PRODUCTOS'
         managed = False
 
+class TipoProducto(models.Model):
+    codigo_tipo_producto = models.IntegerField(primary_key=True)
+    nombre_tipo_producto = models.CharField(max_length=40)
+
+    class Meta:
+        db_table = 'TIPO_PRODUCTOS'
+        managed = False
+
 # =========================
 # VENTAS
 # =========================
