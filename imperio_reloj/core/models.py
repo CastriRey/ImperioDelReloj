@@ -90,3 +90,47 @@ class Ruta(models.Model):
     class Meta:
         managed = False
         db_table = 'RUTAS'
+
+
+# =========================
+# PRODUCTOS
+# =========================
+class Producto(models.Model):
+    codigo_producto = models.IntegerField(primary_key=True)
+    nombre_producto = models.CharField(max_length=40)
+    precio_venta_producto = models.DecimalField(max_digits=10, decimal_places=2)
+    stock_disponible_producto = models.IntegerField(max_length=3)
+    controla_stock = models.CharField(max_length=1)
+
+    class Meta:
+        db_table = 'PRODUCTOS'
+        managed = False
+
+# =========================
+# VENTAS
+# =========================
+class Venta(models.Model):
+    codigo_venta = models.IntegerField(primary_key=True)
+    identificacion_cliente_venta = models.IntegerField()
+    identificacion_empleado_venta = models.IntegerField()
+    total_venta = models.DecimalField(max_digits=10, decimal_places=2)
+    fecha_venta = models.DateField()
+    codigo_metodo_pago = models.IntegerField()
+
+    class Meta:
+        db_table = 'VENTAS'
+        managed = False
+
+# =========================
+# DETALLE VENTAS
+# =========================
+class DetalleVenta(models.Model):
+    codigo_detalle_venta = models.IntegerField(primary_key=True)
+    codigo_venta = models.IntegerField()
+    codigo_producto = models.IntegerField()
+    cantidad_producto = models.IntegerField()
+    precio_unitario_producto = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'DETALLE_VENTAS'
+        managed = False

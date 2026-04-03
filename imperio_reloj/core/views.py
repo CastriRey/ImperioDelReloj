@@ -4,12 +4,13 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated 
-from .models import Cliente, Empleado
+from .models import *
 from .serializers import ClienteSerializer, EmpleadoSerializer
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import connection
 from .utils.permissions import PermisoDinamico
 from .utils.authentication import CustomJWTAuthentication
+from datetime import date
 
 # Create your views here.
 
@@ -26,6 +27,13 @@ class EmpleadoViewset(viewsets.ModelViewSet):
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
+
+
+def obtener_siguiente_valor(secuencia):
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT {secuencia}.NEXTVAL FROM DUAL")
+        row = cursor.fetchone()
+    return row[0]
 
 # @api_view(['GET'])
 
@@ -629,3 +637,96 @@ def eliminar_empleado(reques, id):
                 "error": str(e)
             }, status=400
         )
+    
+
+@api_view(['POST'])
+def crear_venta(request):
+    try:
+        cliente_id = request.data.get('cliente_id')
+        empleado_id = request.data.get('empleado_id')
+        metodo_pago = request.data.get('metodo_pago')
+        productos = request.data.get('productos')
+
+        # Validaciones
+        if not cliente_id or not empleado_id or not productos:
+            return Response(
+                {
+                    "error": "Faltan datos obligatorios"
+                }, status= 400
+            )
+        
+        total = 0
+        detalles = []
+
+        for item in productos:
+            producto_id = item.get('producto_id')
+            cantidad = item.get('cantidad')
+
+            producto = Producto.objects.get(codigo_producto = producto_id)
+
+            # Validar stock del producto
+            if producto.controla_stock == 'S':
+                if producto.stock_disponible_producto < cantidad:
+                    return Response(
+                        {
+                            "error": f"Stock insuficiente del producto {producto.nombre_producto}"
+                        }, status=400
+                    )
+                
+            subtotal = producto.precio_venta_producto * cantidad
+            total += subtotal
+        
+            detalles.append(
+                {
+                    "producto": producto,
+                    "cantidad": cantidad,
+                    "precio": producto.precio_venta_producto
+                }
+            )
+
+        # Obtener siguiente ID de venta
+        venta_id = obtener_siguiente_valor('SEQ_VENTAS')
+
+        venta = Venta(
+            codigo_venta=venta_id,
+            identificacion_cliente_venta = cliente_id,
+            identificacion_empleado_venta = empleado_id,
+            total_venta = total,
+            fecha_venta = date.today(),
+            codigo_metodo_pago=metodo_pago
+        )
+
+        venta.save()
+
+        # Crear Detalle Ventas
+        for d in detalles:
+            detalle_id = obtener_siguiente_valor('SEQ_DETALLE_VENTAS')
+
+            DetalleVenta.objects.create(
+                codigo_detalle_venta=detalle_id,
+                codigo_venta = venta_id,
+                codigo_producto = d['producto'].codigo_producto,
+                cantidad_producto = d['cantidad'],
+                precio_unitario_producto = d['precio']
+            )
+
+            # Descontar Stock
+            if d['producto'].controla_stock == 'S':
+                d['producto'].stock_disponible_producto -= d['cantidad']
+                d['producto'].save()
+
+        return Response(
+            {
+                "mensaje": "Venta Realizada correctamente",
+                "venta_id": venta_id,
+                "total": total
+            }
+        )
+
+    except Exception as e:
+        return Response (
+            {
+                "error": str(e)
+            }, status=400
+        )
+        
