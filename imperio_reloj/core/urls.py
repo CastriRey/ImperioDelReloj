@@ -32,4 +32,9 @@ urlpatterns = [
     path('marcas/<int:codigo>/', obtener_marca),
     path('marcas/<int:codigo>/actualizar/', actualizar_marca),
     path('marcas/<int:codigo>/eliminar/', eliminar_marca),
+    path('estados_servicio/', listar_estados_servicio),
+    path('estados_servicio/crear/', crear_estado_servicio),
+    path('estados_servicio/<int:codigo>/', obtener_estado_servicio),
+    path('estados_servicio/<int:codigo>/actualizar/', actualizar_estado_servicio),
+    path('estados_servicio/<int:codigo>/eliminar/', eliminar_estado_servicio),
 ]

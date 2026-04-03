@@ -1225,3 +1225,158 @@ def eliminar_marca(request, codigo):
             }, status=400
         )
     
+
+@api_view(['GET'])
+def listar_estados_servicio(request):
+    try:
+        estados = EstadoServicio.objects.all()
+
+        data = []
+
+        for e in estados:
+            data.append(
+                {
+                    "codigo": e.codigo_estado_servicio,
+                    "nombre": e.nombre_estado_reparacion
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['GET'])
+def obtener_estado_servicio(request, codigo):
+    try:
+        estado = EstadoServicio.objects.get(codigo_estado_servicio=codigo)
+
+        data = {
+            "codigo": estado.codigo_estado_servicio,
+            "nombre": estado.nombre_estado_reparacion
+        }
+
+        return Response(data)
+
+    except EstadoServicio.DoesNotExist:
+        return Response(
+            {
+                "error": "Estado de servicio no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['POST'])
+def crear_estado_servicio(request):
+    try:
+        nombre = request.data.get('nombre')
+
+        if not nombre:
+            return Response(
+                {
+                    "error": "El campo 'nombre' es obligatorio"
+                }, status=400
+            )
+        
+        if len(nombre) > 20:
+            return Response(
+                {
+                    "error": "El nombre es demasiado largo"
+                }, status=400
+            )
+        
+        codigo = obtener_siguiente_valor('SEQ_ESTADOS_SERVICIO')
+
+        estado = EstadoServicio(
+            codigo_estado_servicio = codigo,
+            nombre_estado_reparacion = nombre
+        )
+
+        estado.save()
+
+        return Response(
+            {
+                "mensaje": "Estado de servicio creado correctamente",
+                "codigo": codigo
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['PUT'])
+def actualizar_estado_servicio(request, codigo):
+    try:
+        estado = EstadoServicio.objects.get(codigo_estado_servicio=codigo)
+
+        nombre = request.data.get('nombre')
+
+        if nombre:
+            if len(nombre) > 20:
+                return Response(
+                    {
+                        "error": "El nombre es demasiado largo"
+                    }, status=400
+                )
+            estado.nombre_estado_reparacion = nombre
+            estado.save()
+
+        return Response(
+            {
+                "mensaje": "Estado de servicio actualizado correctamente"
+            }
+        )
+
+    except EstadoServicio.DoesNotExist:
+        return Response(
+            {
+                "error": "Estado de servicio no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['DELETE'])
+def eliminar_estado_servicio(request, codigo):
+    try:
+        estado = EstadoServicio.objects.get(codigo_estado_servicio=codigo)
+        estado.delete()
+
+        return Response(
+            {
+                "mensaje": "Estado de servicio eliminado correctamente"
+            }
+        )
+
+    except EstadoServicio.DoesNotExist:
+        return Response(
+            {
+                "error": "Estado de servicio no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )

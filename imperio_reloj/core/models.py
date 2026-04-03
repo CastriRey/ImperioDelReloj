@@ -150,3 +150,15 @@ class DetalleVenta(models.Model):
     class Meta:
         db_table = 'DETALLE_VENTAS'
         managed = False
+
+
+# =========================
+# SERVICIOS
+# =========================
+class EstadoServicio(models.Model):
+    codigo_estado_servicio = models.IntegerField(primary_key=True)
+    nombre_estado_reparacion = models.CharField(max_length=20)
+
+    class Meta:
+        db_table = 'ESTADOS_SERVICIO'
+        managed = False
