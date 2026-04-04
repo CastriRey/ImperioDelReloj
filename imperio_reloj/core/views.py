@@ -1816,3 +1816,117 @@ def eliminar_tipo_servicio(request, codigo):
                 "error": str(e)
             }, status=400
         )
+    
+
+@api_view(['GET'])
+def listar_relojes_todos_clientes(request):
+    try:
+        relojes = RelojCliente.objects.all()
+
+        data = []
+
+        for r in relojes:
+            data.append(
+                {
+                    "codigo_reloj": r.codigo_reloj_cliente,
+                    "codigo_cliente": r.codigo_cliente,
+                    "marca": r.codigo_marca,
+                    "modelo": r.modelo,
+                    "descripcion": r.descripcion_reloj
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+@api_view(['GET'])
+def listar_relojes_cliente(request, cliente_id):
+    try:
+        relojes = RelojCliente.objects.filter(codigo_cliente=cliente_id)
+
+        data = []
+
+        for r in relojes:
+            data.append(
+                {
+                    "codigo_reloj": r.codigo_reloj_cliente,
+                    "codigo_cliente": r.codigo_cliente,
+                    "marca": r.codigo_marca,
+                    "modelo": r.modelo,
+                    "descripcion": r.descripcion_reloj
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['POST'])
+def crear_reloj_cliente(request):
+    try:
+        cliente_id = request.data.get('cliente_id')
+        marca = request.data.get('marca')
+        modelo = request.data.get('modelo')
+        descripcion = request.data.get('descripcion')
+
+        if not cliente_id:
+            return Response(
+                {
+                    "error": "El campo 'cliente_id' es obligatorio"
+                }, status=400
+            )
+        
+        if not marca:
+            return Response(
+                {
+                    "error": "El campo 'marca' es obligatorio"
+                }, status=400
+            )
+        
+        if not modelo:
+            return Response(
+                {
+                    "error": "El campo 'modelo' es obligatorio"
+                }, status=400
+            )
+        
+        codigo_reloj = obtener_siguiente_valor('SEQ_RELOJES_CLIENTE')
+
+        reloj = RelojCliente(
+            codigo_reloj_cliente = codigo_reloj,
+            codigo_cliente = cliente_id,
+            codigo_marca = marca,
+            modelo = modelo,
+            descripcion_reloj = descripcion
+        )
+
+        reloj.save()
+
+        return Response(
+            {
+                "codigo_reloj": codigo_reloj,
+                "mensaje": "Reloj del cliente creado correctamente",
+                "codigo_cliente": cliente_id,
+                "modelo": modelo,
+                "descripcion": descripcion
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    

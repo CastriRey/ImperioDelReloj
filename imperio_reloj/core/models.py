@@ -49,6 +49,17 @@ class Cliente(models.Model):
     def __str__(self):
         return f"{self.nombre_cliente} {self.primer_apellido_cliente}"
     
+class RelojCliente(models.Model):
+    codigo_reloj_cliente = models.IntegerField(primary_key=True)
+    codigo_cliente = models.IntegerField()
+    codigo_marca = models.CharField(max_length=30)
+    modelo = models.CharField(max_length=15, null=True, blank=True)
+    descripcion_reloj = models.CharField(max_length=200, null=True, blank=True)
+
+    class Meta:
+        db_table = 'RELOJES_CLIENTE'
+        managed = False
+    
 # =========================
 # PERFILES, RUTAS Y PERMISOS
 # =========================
@@ -92,15 +103,15 @@ class Producto(models.Model):
     nombre_producto = models.CharField(max_length=40)
     codigo_marca = models.IntegerField(max_length=3)
     codigo_tipo_producto = models.IntegerField(max_length=2)
-    modelo_producto = models.CharField(max_length=15)
+    modelo_producto = models.CharField(max_length=15, null=True, blank=True)
     precio_venta_producto = models.DecimalField(max_digits=10, decimal_places=2)
     costo_producto = models.DecimalField(max_digits=10, decimal_places=2)
     garantia_producto = models.IntegerField(max_length=2)
-    descripcion_producto = models.CharField(max_length=255)
+    descripcion_producto = models.CharField(max_length=255, null=True, blank=True)
     stock_disponible_producto = models.IntegerField(max_length=3)
     stock_minimo_producto = models.IntegerField(max_length=3)
     controla_stock = models.CharField(max_length=1)
-    ultima_actualizacion_producto = models.DateField()
+    ultima_actualizacion_producto = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = 'PRODUCTOS'
