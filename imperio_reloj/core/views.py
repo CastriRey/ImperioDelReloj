@@ -10,7 +10,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.db import connection
 from .utils.permissions import PermisoDinamico
 from .utils.authentication import CustomJWTAuthentication
-from datetime import date
+from datetime import date, datetime
 
 # Create your views here.
 
@@ -914,6 +914,286 @@ def obtener_venta(request, venta_id):
                 "error": str(e)
             }, status=400
         )
+    
+
+@api_view(['GET'])
+def listar_productos(request):
+    try:
+        productos = Producto.objects.all()
+
+        data = []
+
+        for p in productos:
+            data.append(
+                {
+                    "codigo": p.codigo_producto,
+                    "nombre": p.nombre_producto,
+                    "marca": p.codigo_marca,
+                    "tipo_producto": p.codigo_tipo_producto,
+                    "modelo": p.modelo_producto,
+                    "precio_venta": p.precio_venta_producto,
+                    "costo": p.costo_producto,
+                    "descripcion": p.descripcion_producto,
+                    "garantia_meses": p.garantia_producto,
+                    "stock_disponible": p.stock_disponible_producto,
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['GET'])
+def obtener_producto(request, codigo):
+    try:
+        producto = Producto.objects.get(codigo_producto=codigo)
+
+        data = {
+            "codigo": producto.codigo_producto,
+            "nombre": producto.nombre_producto,
+            "marca": producto.codigo_marca,
+            "tipo_producto": producto.codigo_tipo_producto,
+            "modelo": producto.modelo_producto,
+            "precio_venta": producto.precio_venta_producto,
+            "costo": producto.costo_producto,
+            "descripcion": producto.descripcion_producto,
+            "garantia_meses": producto.garantia_producto,
+            "stock_disponible": producto.stock_disponible_producto,
+        }
+
+        return Response(data)
+
+    except Producto.DoesNotExist:
+        return Response(
+            {
+                "error": "Producto no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
+@api_view(['POST'])
+def crear_producto(request):
+    try:
+        nombre = request.data.get('nombre')
+        marca = request.data.get('marca')
+        tipo_producto = request.data.get('tipo_producto')
+        modelo = request.data.get('modelo')
+        precio_venta = request.data.get('precio_venta')
+        costo = request.data.get('costo')
+        garantia_meses = request.data.get('garantia_meses')
+        descripcion = request.data.get('descripcion')
+        stock_disponible = request.data.get('stock_disponible')
+        stock_minimo = request.data.get('stock_minimo')
+        controla_stock = request.data.get('controla_stock')
+        ultima_actualizacion_producto = datetime.now()
+
+        # Validaciones de campos obligatorios
+        if not nombre:
+            return Response(
+                {
+                    "error": "El campo 'nombre' es obligatorio"
+                }, status=400
+            )
+        
+        if not marca:
+            return Response(
+                {
+                    "error": "El campo 'marca' es obligatorio"
+                }, status=400
+            )
+        
+        if not tipo_producto:
+            return Response(
+                {
+                    "error": "El campo 'tipo_producto' es obligatorio"
+                }, status=400
+            )
+        
+        if not modelo:
+            return Response(
+                {
+                    "error": "El campo 'modelo' es obligatorio"
+                }, status=400
+            )
+        
+        if precio_venta is None:
+            return Response(
+                {
+                    "error": "El campo 'precio_venta' es obligatorio"
+                }, status=400
+            )
+        
+        if costo is None:
+            return Response(
+                {
+                    "error": "El campo 'costo' es obligatorio"
+                }, status=400
+            )
+        
+        if controla_stock not in ['S', 'N']:
+            return Response(
+                {
+                    "error": "El campo 'controla_stock' debe ser 'S' o 'N'"
+                }, status=400
+            )
+        
+        if controla_stock == 'S' and stock_disponible is None:
+            return Response(
+                {
+                    "error": "El campo 'stock_disponible' es obligatorio cuando controla_stock es 'S'"
+                }, status=400
+            )
+        
+        if stock_minimo is not None and (not isinstance(stock_minimo, int) or stock_minimo < 0):
+            return Response(
+                {
+                    "error": "El campo 'stock_minimo' debe ser un entero positivo"
+                }, status=400
+            )
+        
+        producto_id = obtener_siguiente_valor('SEQ_PRODUCTOS')
+
+        producto = Producto(
+            codigo_producto = producto_id,
+            nombre_producto = nombre,
+            codigo_marca = marca,
+            codigo_tipo_producto = tipo_producto,
+            modelo_producto = modelo,
+            precio_venta_producto = precio_venta,
+            costo_producto = costo,
+            descripcion_producto = descripcion,
+            garantia_producto = garantia_meses,
+            controla_stock = controla_stock,
+            stock_disponible_producto = stock_disponible,
+            stock_minimo_producto = stock_minimo,
+            ultima_actualizacion_producto = ultima_actualizacion_producto
+        )
+
+        producto.save()
+
+        return Response(
+            {
+                "mensaje": "Producto creado correctamente",
+                "codigo": producto_id
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['PUT'])
+def actualizar_producto(request, codigo):
+    try:
+        producto = Producto.objects.get(codigo_producto=codigo)
+
+        nombre = request.data.get('nombre')
+        marca = request.data.get('marca')
+        tipo_producto = request.data.get('tipo_producto')
+        modelo = request.data.get('modelo')
+        precio_venta = request.data.get('precio_venta')
+        costo = request.data.get('costo')
+        garantia_meses = request.data.get('garantia_meses')
+        descripcion = request.data.get('descripcion')
+        stock_disponible = request.data.get('stock_disponible')
+        stock_minimo = request.data.get('stock_minimo')
+        controla_stock = request.data.get('controla_stock')
+
+        if nombre:
+            producto.nombre_producto = nombre
+        
+        if marca:
+            producto.codigo_marca = marca
+        
+        if tipo_producto:
+            producto.codigo_tipo_producto = tipo_producto
+        
+        if modelo:
+            producto.modelo_producto = modelo
+        
+        if precio_venta is not None:
+            producto.precio_venta_producto = precio_venta
+        
+        if costo is not None:
+            producto.costo_producto = costo
+        
+        if garantia_meses is not None:
+            producto.garantia_producto = garantia_meses
+        
+        if descripcion:
+            producto.descripcion_producto = descripcion
+        
+        if controla_stock in ['S', 'N']:
+            producto.controla_stock = controla_stock
+        
+        if stock_disponible is not None:
+            producto.stock_disponible_producto = stock_disponible
+        
+        if stock_minimo is not None:
+            producto.stock_minimo_producto = stock_minimo
+
+        producto.save()
+
+        return Response(
+            {
+                "mensaje": "Producto actualizado correctamente"
+            }
+        )
+
+    except Producto.DoesNotExist:
+        return Response(
+            {
+                "error": "Producto no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['DELETE'])
+def eliminar_producto(request, codigo):
+    try:
+        producto = Producto.objects.get(codigo_producto=codigo)
+        producto.delete()
+
+        return Response(
+            {
+                "mensaje": "Producto eliminado correctamente"
+            }
+        )
+
+    except Producto.DoesNotExist:
+        return Response(
+            {
+                "error": "Producto no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+
 
 @api_view(['GET'])
 def listar_tipos_producto(request):
@@ -1371,6 +1651,162 @@ def eliminar_estado_servicio(request, codigo):
         return Response(
             {
                 "error": "Estado de servicio no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+
+@api_view(['GET'])
+def listar_tipos_servicio(request):
+    try:
+        tipos = TipoServicio.objects.all()
+
+        data = []
+
+        for t in tipos:
+            data.append(
+                {
+                    "codigo": t.codigo_tipo_servicio,
+                    "nombre": t.nombre_tipo_servicio
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['GET'])
+def obtener_tipo_servicio(request, codigo):
+    try:
+        tipo = TipoServicio.objects.get(codigo_tipo_servicio=codigo)
+
+        data = {
+            "codigo": tipo.codigo_tipo_servicio,
+            "nombre": tipo.nombre_tipo_servicio
+        }
+
+        return Response(data)
+
+    except TipoServicio.DoesNotExist:
+        return Response(
+            {
+                "error": "Tipo de servicio no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['POST'])
+def crear_tipo_servicio(request):
+    try:
+        nombre = request.data.get('nombre')
+
+        if not nombre:
+            return Response(
+                {
+                    "error": "El campo 'nombre' es obligatorio"
+                }, status=400
+            )
+        
+        if len(nombre) > 40:
+            return Response(
+                {
+                    "error": "El nombre es demasiado largo"
+                }, status=400
+            )
+        
+        codigo = obtener_siguiente_valor('SEQ_TIPOS_SERVICIO')
+
+        tipo = TipoServicio(
+            codigo_tipo_servicio = codigo,
+            nombre_tipo_servicio = nombre
+        )
+
+        tipo.save()
+
+        return Response(
+            {
+                "mensaje": "Tipo de servicio creado correctamente",
+                "codigo": codigo
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['PUT'])
+def actualizar_tipo_servicio(request, codigo):
+    try:
+        tipo = TipoServicio.objects.get(codigo_tipo_servicio=codigo)
+
+        nombre = request.data.get('nombre')
+
+        if nombre:
+            if len(nombre) > 40:
+                return Response(
+                    {
+                        "error": "El nombre es demasiado largo"
+                    }, status=400
+                )
+            tipo.nombre_tipo_servicio = nombre
+            tipo.save()
+
+        return Response(
+            {
+                "mensaje": "Tipo de servicio actualizado correctamente"
+            }
+        )
+
+    except TipoServicio.DoesNotExist:
+        return Response(
+            {
+                "error": "Tipo de servicio no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['DELETE'])
+def eliminar_tipo_servicio(request, codigo):
+    try:
+        tipo = TipoServicio.objects.get(codigo_tipo_servicio=codigo)
+        tipo.delete()
+
+        return Response(
+            {
+                "mensaje": "Tipo de servicio eliminado correctamente"
+            }
+        )
+
+    except TipoServicio.DoesNotExist:
+        return Response(
+            {
+                "error": "Tipo de servicio no encontrado"
             }, status=404
         )
     

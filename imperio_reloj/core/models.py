@@ -42,14 +42,6 @@ class Cliente(models.Model):
     identificacion_empleado = models.IntegerField()
 
     comentarios = models.CharField(max_length=150, null=True, blank=True)
-
-    # Clave Foranea de la tabla Clientes hacia Empleados por 'identificacion_empleado'
-    # empleado = models.ForeignKey(
-    #     Empleado,
-    #     on_delete=models.DO_NOTHING,
-    #     db_column='IDENTIFICACION_EMPLEADO'
-    # )
-
     class Meta:
         db_table = 'CLIENTES'
         managed = False
@@ -98,9 +90,17 @@ class Ruta(models.Model):
 class Producto(models.Model):
     codigo_producto = models.IntegerField(primary_key=True)
     nombre_producto = models.CharField(max_length=40)
+    codigo_marca = models.IntegerField(max_length=3)
+    codigo_tipo_producto = models.IntegerField(max_length=2)
+    modelo_producto = models.CharField(max_length=15)
     precio_venta_producto = models.DecimalField(max_digits=10, decimal_places=2)
+    costo_producto = models.DecimalField(max_digits=10, decimal_places=2)
+    garantia_producto = models.IntegerField(max_length=2)
+    descripcion_producto = models.CharField(max_length=255)
     stock_disponible_producto = models.IntegerField(max_length=3)
+    stock_minimo_producto = models.IntegerField(max_length=3)
     controla_stock = models.CharField(max_length=1)
+    ultima_actualizacion_producto = models.DateField()
 
     class Meta:
         db_table = 'PRODUCTOS'
@@ -161,4 +161,12 @@ class EstadoServicio(models.Model):
 
     class Meta:
         db_table = 'ESTADOS_SERVICIO'
+        managed = False
+
+class TipoServicio(models.Model):
+    codigo_tipo_servicio = models.IntegerField(primary_key=True)
+    nombre_tipo_servicio = models.CharField(max_length=30)
+
+    class Meta:
+        db_table = 'TIPOS_SERVICIO'
         managed = False
