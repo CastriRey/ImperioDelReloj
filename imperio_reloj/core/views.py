@@ -1930,3 +1930,158 @@ def crear_reloj_cliente(request):
             }, status=400
         )
     
+
+@api_view(['GET'])
+def listar_metodos_pago(request):
+    try:
+        metodos = MetodoPago.objects.all()
+
+        data = []
+
+        for m in metodos:
+            data.append(
+                {
+                    "codigo": m.codigo_metodo_pago,
+                    "nombre": m.nombre_metodo_pago
+                }
+            )
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['GET'])
+def obtener_metodo_pago(request, codigo):
+    try:
+        metodo = MetodoPago.objects.get(codigo_metodo_pago=codigo)
+
+        data = {
+            "codigo": metodo.codigo_metodo_pago,
+            "nombre": metodo.nombre_metodo_pago
+        }
+
+        return Response(data)
+
+    except MetodoPago.DoesNotExist:
+        return Response(
+            {
+                "error": "Método de pago no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['POST'])
+def crear_metodo_pago(request):
+    try:
+        nombre = request.data.get('nombre')
+
+        if not nombre:
+            return Response(
+                {
+                    "error": "El campo 'nombre' es obligatorio"
+                }, status=400
+            )
+        
+        if len(nombre) > 30:
+            return Response(
+                {
+                    "error": "El nombre es demasiado largo"
+                }, status=400
+            )
+        
+        codigo = obtener_siguiente_valor('SEQ_METODOS_PAGO')
+
+        metodo = MetodoPago(
+            codigo_metodo_pago = codigo,
+            nombre_metodo_pago = nombre
+        )
+
+        metodo.save()
+
+        return Response(
+            {
+                "mensaje": "Método de pago creado correctamente",
+                "codigo": codigo
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['PUT'])
+def actualizar_metodo_pago(request, codigo):
+    try:
+        metodo = MetodoPago.objects.get(codigo_metodo_pago=codigo)
+
+        nombre = request.data.get('nombre')
+
+        if nombre:
+            if len(nombre) > 30:
+                return Response(
+                    {
+                        "error": "El nombre es demasiado largo"
+                    }, status=400
+                )
+            metodo.nombre_metodo_pago = nombre
+            metodo.save()
+
+        return Response(
+            {
+                "mensaje": "Método de pago actualizado correctamente"
+            }
+        )
+
+    except MetodoPago.DoesNotExist:
+        return Response(
+            {
+                "error": "Método de pago no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )
+    
+@api_view(['DELETE'])
+def eliminar_metodo_pago(request, codigo):
+    try:
+        metodo = MetodoPago.objects.get(codigo_metodo_pago=codigo)
+        metodo.delete()
+
+        return Response(
+            {
+                "mensaje": "Método de pago eliminado correctamente"
+            }
+        )
+
+    except MetodoPago.DoesNotExist:
+        return Response(
+            {
+                "error": "Método de pago no encontrado"
+            }, status=404
+        )
+    
+    except Exception as e:
+        return Response(
+            {
+                "error": str(e)
+            }, status=400
+        )

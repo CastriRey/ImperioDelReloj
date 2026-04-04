@@ -181,3 +181,12 @@ class TipoServicio(models.Model):
     class Meta:
         db_table = 'TIPOS_SERVICIO'
         managed = False
+
+
+class MetodoPago(models.Model):
+    codigo_metodo_pago = models.IntegerField(primary_key=True)
+    nombre_metodo_pago = models.CharField(max_length=30)
+
+    class Meta:
+        db_table = 'METODOS_PAGO'
+        managed = False
