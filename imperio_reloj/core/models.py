@@ -166,6 +166,24 @@ class DetalleVenta(models.Model):
 # =========================
 # SERVICIOS
 # =========================
+
+class Servicio(models.Model):
+    codigo_servicio = models.IntegerField(primary_key=True)
+    codigo_tecnico = models.IntegerField()
+    codigo_tipo_servicio = models.IntegerField()
+    codigo_estado_servicio = models.IntegerField()
+    codigo_detalle_venta = models.IntegerField(null=True, blank=True)
+    codigo_reloj_cliente = models.IntegerField()
+    fecha_servicio = models.DateField()
+    descripcion_falla = models.CharField(max_length=500)
+
+    class Meta:
+        db_table = 'SERVICIOS'
+        managed = False
+
+    def __str__(self):
+        return f"Servicio {self.codigo_servicio} - Reloj {self.codigo_reloj_cliente}"
+
 class EstadoServicio(models.Model):
     codigo_estado_servicio = models.IntegerField(primary_key=True)
     nombre_estado_reparacion = models.CharField(max_length=20)

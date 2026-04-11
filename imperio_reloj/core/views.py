@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated 
 from .models import *
-from .serializers import ClienteSerializer, EmpleadoSerializer
+from .serializers import ClienteSerializer, EmpleadoSerializer, ServicioSerializer
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import connection
 from .utils.permissions import PermisoDinamico
@@ -2085,3 +2085,251 @@ def eliminar_metodo_pago(request, codigo):
                 "error": str(e)
             }, status=400
         )
+
+
+# =========================
+# SERVICIOS
+# =========================
+
+@api_view(['GET'])
+def listar_servicios(request):
+    try:
+        # 🔎 Parámetros de filtro
+        codigo_tecnico = request.query_params.get('codigo_tecnico')
+        codigo_estado = request.query_params.get('codigo_estado')
+        codigo_reloj = request.query_params.get('codigo_reloj')
+
+        # 📦 Query base (TODOS los servicios)
+        servicios = Servicio.objects.all()
+
+        # 🔍 FILTROS DINÁMICOS
+        if codigo_tecnico:
+            servicios = servicios.filter(codigo_tecnico=codigo_tecnico)
+
+        if codigo_estado:
+            servicios = servicios.filter(codigo_estado_servicio=codigo_estado)
+
+        if codigo_reloj:
+            servicios = servicios.filter(codigo_reloj_cliente=codigo_reloj)
+
+        # 🔽 ORDENAMIENTO
+        servicios = servicios.order_by('-codigo_servicio')
+
+        # 📊 SERIALIZACIÓN MANUAL
+        data = []
+
+        for servicio in servicios:
+            data.append({
+                "codigo_servicio": servicio.codigo_servicio,
+                "codigo_tecnico": servicio.codigo_tecnico,
+                "codigo_tipo_servicio": servicio.codigo_tipo_servicio,
+                "codigo_estado_servicio": servicio.codigo_estado_servicio,
+                "codigo_detalle_venta": servicio.codigo_detalle_venta,
+                "codigo_reloj_cliente": servicio.codigo_reloj_cliente,
+                "fecha_servicio": servicio.fecha_servicio,
+                "descripcion_falla": servicio.descripcion_falla
+            })
+
+        return Response(data)
+
+    except Exception as e:
+        return Response({
+            "error": str(e)
+        }, status=400)
+
+
+@api_view(['GET'])
+def obtener_servicio(request, codigo):
+    try:
+        servicio = Servicio.objects.get(codigo_servicio=codigo)
+
+        data = {
+            "codigo_servicio": servicio.codigo_servicio,
+            "codigo_tecnico": servicio.codigo_tecnico,
+            "codigo_tipo_servicio": servicio.codigo_tipo_servicio,
+            "codigo_estado_servicio": servicio.codigo_estado_servicio,
+            "codigo_detalle_venta": servicio.codigo_detalle_venta,
+            "codigo_reloj_cliente": servicio.codigo_reloj_cliente,
+            "fecha_servicio": servicio.fecha_servicio,
+            "descripcion_falla": servicio.descripcion_falla
+        }
+
+        return Response(data)
+
+    except Servicio.DoesNotExist:
+        return Response({
+            "error": "Servicio no encontrado"
+        }, status=404)
+
+    except Exception as e:
+        return Response({
+            "error": str(e)
+        }, status=400)
+
+
+@api_view(['POST'])
+def crear_servicio(request):
+    try:
+        # Campos obligatorios
+        campos_obligatorios = [
+            'codigo_tecnico',
+            'codigo_tipo_servicio',
+            'codigo_estado_servicio',
+            'codigo_reloj_cliente',
+            # 'fecha_servicio',
+            'descripcion_falla'
+        ]
+
+        for campo in campos_obligatorios:
+            if not request.data.get(campo):
+                return Response({
+                    "error": f"El campo '{campo}' es obligatorio"
+                }, status=400)
+
+        # Validar longitud de descripción
+        descripcion = request.data.get('descripcion_falla')
+        if len(descripcion) > 500:
+            return Response({
+                "error": "La descripción de falla es demasiado larga (máximo 500 caracteres)"
+            }, status=400)
+
+        # Validar que el técnico (empleado) exista
+        codigo_tecnico = request.data.get('codigo_tecnico')
+        if not Empleado.objects.filter(identificacion_empleado=codigo_tecnico).exists():
+            return Response({
+                "error": "El técnico (empleado) no existe"
+            }, status=400)
+
+        # Validar que el reloj del cliente exista
+        codigo_reloj = request.data.get('codigo_reloj_cliente')
+        if not RelojCliente.objects.filter(codigo_reloj_cliente=codigo_reloj).exists():
+            return Response({
+                "error": "El reloj del cliente no existe"
+            }, status=400)
+
+        # Validar que el tipo de servicio exista
+        codigo_tipo = request.data.get('codigo_tipo_servicio')
+        if not TipoServicio.objects.filter(codigo_tipo_servicio=codigo_tipo).exists():
+            return Response({
+                "error": "El tipo de servicio no existe"
+            }, status=400)
+
+        # Validar que el estado de servicio exista
+        codigo_estado = request.data.get('codigo_estado_servicio')
+        if not EstadoServicio.objects.filter(codigo_estado_servicio=codigo_estado).exists():
+            return Response({
+                "error": "El estado de servicio no existe"
+            }, status=400)
+
+        # Validar que el detalle de venta existe (si se proporciona)
+        codigo_detalle_venta = request.data.get('codigo_detalle_venta')
+        if codigo_detalle_venta and not DetalleVenta.objects.filter(codigo_detalle_venta=codigo_detalle_venta).exists():
+            return Response({
+                "error": "El detalle de venta no existe"
+            }, status=400)
+
+        # Obtener el siguiente código de servicio
+        codigo_servicio = obtener_siguiente_valor('SEQ_SERVICIOS')
+
+        # Crear el servicio
+        servicio = Servicio(
+            codigo_servicio=codigo_servicio,
+            codigo_tecnico=codigo_tecnico,
+            codigo_tipo_servicio=codigo_tipo,
+            codigo_estado_servicio=codigo_estado,
+            codigo_detalle_venta=codigo_detalle_venta,
+            codigo_reloj_cliente=codigo_reloj,
+            fecha_servicio=datetime.now(),
+            descripcion_falla=descripcion
+        )
+
+        servicio.save()
+
+        return Response({
+            "mensaje": "Servicio creado correctamente",
+            "codigo_servicio": codigo_servicio
+        }, status=201)
+
+    except Exception as e:
+        return Response({
+            "error": str(e)
+        }, status=400)
+
+
+@api_view(['PUT'])
+def actualizar_servicio(request, codigo):
+    try:
+        servicio = Servicio.objects.get(codigo_servicio=codigo)
+
+        # Actualizar campos opcionales
+        if request.data.get('codigo_tipo_servicio'):
+            codigo_tipo = request.data.get('codigo_tipo_servicio')
+            if not TipoServicio.objects.filter(codigo_tipo_servicio=codigo_tipo).exists():
+                return Response({
+                    "error": "El tipo de servicio no existe"
+                }, status=400)
+            servicio.codigo_tipo_servicio = codigo_tipo
+
+        if request.data.get('codigo_estado_servicio'):
+            codigo_estado = request.data.get('codigo_estado_servicio')
+            if not EstadoServicio.objects.filter(codigo_estado_servicio=codigo_estado).exists():
+                return Response({
+                    "error": "El estado de servicio no existe"
+                }, status=400)
+            servicio.codigo_estado_servicio = codigo_estado
+
+        if request.data.get('descripcion_falla'):
+            descripcion = request.data.get('descripcion_falla')
+            if len(descripcion) > 500:
+                return Response({
+                    "error": "La descripción de falla es demasiado larga (máximo 500 caracteres)"
+                }, status=400)
+            servicio.descripcion_falla = descripcion
+
+        if request.data.get('fecha_servicio'):
+            servicio.fecha_servicio = request.data.get('fecha_servicio')
+
+        if request.data.get('codigo_detalle_venta'):
+            codigo_detalle = request.data.get('codigo_detalle_venta')
+            if not DetalleVenta.objects.filter(codigo_detalle_venta=codigo_detalle).exists():
+                return Response({
+                    "error": "El detalle de venta no existe"
+                }, status=400)
+            servicio.codigo_detalle_venta = codigo_detalle
+
+        servicio.save()
+
+        return Response({
+            "mensaje": "Servicio actualizado correctamente"
+        })
+
+    except Servicio.DoesNotExist:
+        return Response({
+            "error": "Servicio no encontrado"
+        }, status=404)
+
+    except Exception as e:
+        return Response({
+            "error": str(e)
+        }, status=400)
+
+
+@api_view(['DELETE'])
+def eliminar_servicio(request, codigo):
+    try:
+        servicio = Servicio.objects.get(codigo_servicio=codigo)
+        servicio.delete()
+
+        return Response({
+            "mensaje": "Servicio eliminado correctamente"
+        })
+
+    except Servicio.DoesNotExist:
+        return Response({
+            "error": "Servicio no encontrado"
+        }, status=404)
+
+    except Exception as e:
+        return Response({
+            "error": str(e)
+        }, status=400)

@@ -55,4 +55,9 @@ urlpatterns = [
     path('metodos_pago/<int:codigo>/', obtener_metodo_pago),
     path('metodos_pago/<int:codigo>/actualizar/', actualizar_metodo_pago),
     path('metodos_pago/<int:codigo>/eliminar/', eliminar_metodo_pago),
+    path('servicios/', listar_servicios),
+    path('servicios/crear/', crear_servicio),
+    path('servicios/<int:codigo>/', obtener_servicio),
+    path('servicios/<int:codigo>/actualizar/', actualizar_servicio),
+    path('servicios/<int:codigo>/eliminar/', eliminar_servicio),
 ]
