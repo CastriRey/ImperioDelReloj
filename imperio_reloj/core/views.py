@@ -1,11 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
+from django import forms
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticated 
+from rest_framework.permissions import AllowAny
 from .models import *
-from .serializers import ClienteSerializer, EmpleadoSerializer, ServicioSerializer
+from .serializers import ClienteSerializer, EmpleadoSerializer
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import connection
 from .utils.permissions import PermisoDinamico
@@ -23,10 +24,724 @@ get, post, put, delete para no tener que escribir codigo extra
 class EmpleadoViewset(viewsets.ModelViewSet):
     queryset = Empleado.objects.all()
     serializer_class = EmpleadoSerializer
+    permission_classes = [PermisoDinamico]
 
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
+    permission_classes = [PermisoDinamico]
+
+
+def login_view(request):
+    return render(request, 'core/login.html')
+
+
+def dashboard(request):
+    return render(request, 'core/dashboard.html')
+
+
+class EmpleadoForm(forms.ModelForm):
+    # Campo visible para el nombre del perfil, con escritura y lista sugerida
+    profile_name = forms.CharField(
+        required=True,
+        label='Perfil',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'list': 'perfiles_list',
+            'placeholder': 'Escribe o selecciona un perfil',
+        })
+    )
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), required=False, help_text="Deja vacío para mantener la contraseña actual")
+
+    class Meta:
+        model = Empleado
+        fields = ['identificacion_empleado', 'nombre_empleado', 'primer_apellido_empleado', 'segundo_apellido_empleado', 'correo_empleado', 'telefono_empleado', 'direccion_empleado', 'password', 'codigo_perfil_empleado']
+        widgets = {
+            'identificacion_empleado': forms.NumberInput(attrs={'class': 'form-control'}),
+            'nombre_empleado': forms.TextInput(attrs={'class': 'form-control'}),
+            'primer_apellido_empleado': forms.TextInput(attrs={'class': 'form-control'}),
+            'segundo_apellido_empleado': forms.TextInput(attrs={'class': 'form-control'}),
+            'correo_empleado': forms.EmailInput(attrs={'class': 'form-control'}),
+            'telefono_empleado': forms.TextInput(attrs={'class': 'form-control'}),
+            'direccion_empleado': forms.TextInput(attrs={'class': 'form-control'}),
+            'codigo_perfil_empleado': forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # El campo código de perfil se maneja internamente, el usuario ve solo el nombre
+        self.fields['codigo_perfil_empleado'].required = False
+        if self.instance and self.instance.pk:
+            perfil = Perfiles.objects.filter(codigo_perfil=self.instance.codigo_perfil_empleado).first()
+            self.initial['profile_name'] = perfil.nombre_perfil if perfil else ''
+
+    def clean_profile_name(self):
+        nombre = self.cleaned_data.get('profile_name')
+        perfil = Perfiles.objects.filter(nombre_perfil__iexact=nombre).first()
+        if not perfil:
+            raise forms.ValidationError('Perfil no válido. Selecciona uno de los perfiles existentes.')
+        self.cleaned_data['codigo_perfil_empleado'] = perfil.codigo_perfil
+        return nombre
+
+
+def empleados_list(request):
+    empleados = Empleado.objects.all()
+    return render(request, 'core/empleados_list.html', {'empleados': empleados})
+
+
+def empleado_create(request):
+    # Vista para crear un empleado desde interfaz.
+    if request.method == 'POST':
+        form = EmpleadoForm(request.POST)
+        if form.is_valid():
+            empleado = form.save(commit=False)
+            if form.cleaned_data['password']:
+                empleado.password = make_password(form.cleaned_data['password'])
+            empleado.save()
+            return redirect('empleados_list')
+    else:
+        form = EmpleadoForm()
+    perfiles = Perfiles.objects.all()
+    return render(request, 'core/empleado_form.html', {'form': form, 'title': 'Crear Empleado', 'perfiles': perfiles})
+
+
+def empleado_edit(request, pk):
+    # Vista para editar un empleado, manteniendo estilos Bootstrap.
+    empleado = get_object_or_404(Empleado, pk=pk)
+    if request.method == 'POST':
+        form = EmpleadoForm(request.POST, instance=empleado)
+        if form.is_valid():
+            emp = form.save(commit=False)
+            if form.cleaned_data['password']:
+                emp.password = make_password(form.cleaned_data['password'])
+            emp.save()
+            return redirect('empleados_list')
+    else:
+        form = EmpleadoForm(instance=empleado)
+        form.fields['password'].required = False
+    perfiles = Perfiles.objects.all()
+    return render(request, 'core/empleado_form.html', {'form': form, 'title': 'Editar Empleado', 'perfiles': perfiles})
+
+
+def empleado_delete(request, pk):
+    empleado = get_object_or_404(Empleado, pk=pk)
+    if request.method == 'POST':
+        empleado.delete()
+        return redirect('empleados_list')
+    return render(request, 'core/empleado_confirm_delete.html', {'empleado': empleado})
+
+
+def seguridad(request):
+    return render(request, 'core/seguridad.html')
+
+
+class RolForm(forms.ModelForm):
+    class Meta:
+        model = Rol
+        fields = ['codigo_rol', 'nombre_rol']
+        widgets = {
+            'codigo_rol': forms.NumberInput(attrs={'class': 'form-control'}),
+            'nombre_rol': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class PerfilForm(forms.ModelForm):
+    class Meta:
+        model = Perfiles
+        fields = ['codigo_perfil', 'nombre_perfil', 'codigo_rol']
+        widgets = {
+            'codigo_perfil': forms.NumberInput(attrs={'class': 'form-control'}),
+            'nombre_perfil': forms.TextInput(attrs={'class': 'form-control'}),
+            'codigo_rol': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class RutaForm(forms.ModelForm):
+    class Meta:
+        model = Ruta
+        fields = ['codigo_ruta', 'nombre_ruta', 'url_ruta']
+        widgets = {
+            'codigo_ruta': forms.NumberInput(attrs={'class': 'form-control'}),
+            'nombre_ruta': forms.TextInput(attrs={'class': 'form-control'}),
+            'url_ruta': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class PermisoForm(forms.ModelForm):
+    YES_NO_CHOICES = [('S', 'Sí'), ('N', 'No')]
+
+    codigo_perfil_permiso = forms.ModelChoiceField(
+        queryset=Perfiles.objects.all(),
+        to_field_name='codigo_perfil',
+        empty_label=None,
+        label='Perfil',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    codigo_ruta_permiso = forms.ModelChoiceField(
+        queryset=Ruta.objects.all(),
+        to_field_name='codigo_ruta',
+        empty_label=None,
+        label='Ruta',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    insertar = forms.ChoiceField(choices=YES_NO_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    modificar = forms.ChoiceField(choices=YES_NO_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    eliminar = forms.ChoiceField(choices=YES_NO_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    consultar = forms.ChoiceField(choices=YES_NO_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+
+    def clean_codigo_perfil_permiso(self):
+        perfil = self.cleaned_data.get('codigo_perfil_permiso')
+        return perfil.codigo_perfil if perfil else None
+
+    def clean_codigo_ruta_permiso(self):
+        ruta = self.cleaned_data.get('codigo_ruta_permiso')
+        return ruta.codigo_ruta if ruta else None
+
+    class Meta:
+        model = Permiso
+        fields = ['codigo_perfil_permiso', 'codigo_ruta_permiso', 'insertar', 'modificar', 'eliminar', 'consultar']
+
+
+def roles_list(request):
+    roles = Rol.objects.all()
+    return render(request, 'core/roles_list.html', {'roles': roles})
+
+
+def rol_create(request):
+    if request.method == 'POST':
+        form = RolForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('roles_list')
+    else:
+        form = RolForm()
+    return render(request, 'core/rol_form.html', {'form': form, 'title': 'Crear Rol'})
+
+
+def rol_edit(request, pk):
+    rol = get_object_or_404(Rol, pk=pk)
+    if request.method == 'POST':
+        form = RolForm(request.POST, instance=rol)
+        if form.is_valid():
+            form.save()
+            return redirect('roles_list')
+    else:
+        form = RolForm(instance=rol)
+    return render(request, 'core/rol_form.html', {'form': form, 'title': 'Editar Rol'})
+
+
+def rol_delete(request, pk):
+    rol = get_object_or_404(Rol, pk=pk)
+    if request.method == 'POST':
+        rol.delete()
+        return redirect('roles_list')
+    return render(request, 'core/rol_confirm_delete.html', {'rol': rol})
+
+
+def perfiles_list(request):
+    perfiles = Perfiles.objects.all()
+    return render(request, 'core/perfiles_list.html', {'perfiles': perfiles})
+
+
+def perfil_create(request):
+    if request.method == 'POST':
+        form = PerfilForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('perfiles_list')
+    else:
+        form = PerfilForm()
+    return render(request, 'core/perfil_form.html', {'form': form, 'title': 'Crear Perfil'})
+
+
+def perfil_edit(request, pk):
+    perfil = get_object_or_404(Perfiles, pk=pk)
+    if request.method == 'POST':
+        form = PerfilForm(request.POST, instance=perfil)
+        if form.is_valid():
+            form.save()
+            return redirect('perfiles_list')
+    else:
+        form = PerfilForm(instance=perfil)
+    return render(request, 'core/perfil_form.html', {'form': form, 'title': 'Editar Perfil'})
+
+
+def perfil_delete(request, pk):
+    perfil = get_object_or_404(Perfiles, pk=pk)
+    if request.method == 'POST':
+        perfil.delete()
+        return redirect('perfiles_list')
+    return render(request, 'core/perfil_confirm_delete.html', {'perfil': perfil})
+
+
+def rutas_list(request):
+    rutas = Ruta.objects.all()
+    return render(request, 'core/rutas_list.html', {'rutas': rutas})
+
+
+def ruta_create(request):
+    if request.method == 'POST':
+        form = RutaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('rutas_list')
+    else:
+        form = RutaForm()
+    return render(request, 'core/ruta_form.html', {'form': form, 'title': 'Crear Ruta'})
+
+
+def ruta_edit(request, pk):
+    ruta = get_object_or_404(Ruta, pk=pk)
+    if request.method == 'POST':
+        form = RutaForm(request.POST, instance=ruta)
+        if form.is_valid():
+            form.save()
+            return redirect('rutas_list')
+    else:
+        form = RutaForm(instance=ruta)
+    return render(request, 'core/ruta_form.html', {'form': form, 'title': 'Editar Ruta'})
+
+
+def ruta_delete(request, pk):
+    ruta = get_object_or_404(Ruta, pk=pk)
+    if request.method == 'POST':
+        ruta.delete()
+        return redirect('rutas_list')
+    return render(request, 'core/ruta_confirm_delete.html', {'ruta': ruta})
+
+
+def permisos_list(request):
+    permisos = Permiso.objects.all()
+    permisos_mostrados = []
+    for permiso in permisos:
+        perfil_obj = Perfiles.objects.filter(codigo_perfil=permiso.codigo_perfil_permiso).first()
+        ruta_obj = Ruta.objects.filter(codigo_ruta=permiso.codigo_ruta_permiso).first()
+        permisos_mostrados.append({
+            'codigo_perfil_permiso': permiso.codigo_perfil_permiso,
+            'perfil_nombre': perfil_obj.nombre_perfil if perfil_obj else f'Perfil {permiso.codigo_perfil_permiso}',
+            'codigo_ruta_permiso': permiso.codigo_ruta_permiso,
+            'ruta_url': ruta_obj.url_ruta if ruta_obj else f'Ruta {permiso.codigo_ruta_permiso}',
+            'insertar': permiso.insertar,
+            'modificar': permiso.modificar,
+            'eliminar': permiso.eliminar,
+            'consultar': permiso.consultar,
+        })
+    return render(request, 'core/permisos_list.html', {'permisos': permisos_mostrados})
+
+
+def permiso_create(request):
+    if request.method == 'POST':
+        form = PermisoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('permisos_list')
+    else:
+        form = PermisoForm()
+    return render(request, 'core/permiso_form.html', {'form': form, 'title': 'Crear Permiso'})
+
+
+def permiso_edit(request, perfil_id, ruta_id):
+    # Vista para editar un permiso usando perfil_id y ruta_id como clave compuesta.
+    permiso = get_object_or_404(Permiso, codigo_perfil_permiso=perfil_id, codigo_ruta_permiso=ruta_id)
+    if request.method == 'POST':
+        form = PermisoForm(request.POST, instance=permiso)
+        if form.is_valid():
+            form.save()
+            return redirect('permisos_list')
+    else:
+        form = PermisoForm(instance=permiso)
+    return render(request, 'core/permiso_form.html', {'form': form, 'title': 'Editar Permiso'})
+
+
+def permiso_delete(request, perfil_id, ruta_id):
+    # Vista para eliminar un permiso usando perfil_id y ruta_id como clave compuesta.
+    permiso = get_object_or_404(Permiso, codigo_perfil_permiso=perfil_id, codigo_ruta_permiso=ruta_id)
+    if request.method == 'POST':
+        permiso.delete()
+        return redirect('permisos_list')
+    return render(request, 'core/permiso_confirm_delete.html', {'permiso': permiso})
+
+
+def logout_view(request):
+    return render(request, 'core/logout.html')
+
+
+# =========================================================================================
+# CRUD: CLIENTES (Interfaz Web)
+# =========================================================================================
+
+class ClienteForm(forms.ModelForm):
+    """
+    Formulario para crear y editar clientes en la interfaz web.
+    
+    Este formulario maneja:
+    - Datos personales del cliente (nombre, apellidos)
+    - Datos de contacto (correo, teléfono)
+    - Relación con un empleado
+    - Comentarios internos
+    """
+    empleado_nombre = forms.CharField(
+        required=True,
+        label='Empleado Asignado',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Escribe o selecciona un empleado',
+        })
+    )
+    identificacion_empleado = forms.IntegerField(
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['identificacion_empleado'].required = False
+        if self.instance and self.instance.pk:
+            empleado = Empleado.objects.filter(identificacion_empleado=self.instance.identificacion_empleado).first()
+            if empleado:
+                self.initial['empleado_nombre'] = f"{empleado.identificacion_empleado} - {empleado.nombre_empleado} {empleado.primer_apellido_empleado}"
+                self.initial['identificacion_empleado'] = empleado.identificacion_empleado
+
+    def clean_empleado_nombre(self):
+        nombre = self.cleaned_data.get('empleado_nombre')
+        if not nombre:
+            raise forms.ValidationError('Selecciona un empleado válido.')
+
+        empleado = None
+        if ' - ' in nombre:
+            posible_codigo = nombre.split(' - ', 1)[0].strip()
+            if posible_codigo.isdigit():
+                empleado = Empleado.objects.filter(identificacion_empleado=int(posible_codigo)).first()
+
+        if not empleado:
+            empleado = Empleado.objects.filter(nombre_empleado__iexact=nombre).first()
+
+        if not empleado:
+            partes = nombre.strip().split()
+            if len(partes) >= 2:
+                empleado = Empleado.objects.filter(
+                    nombre_empleado__iexact=partes[0],
+                    primer_apellido_empleado__iexact=partes[1]
+                ).first()
+
+        if not empleado:
+            raise forms.ValidationError('Empleado no válido. Selecciona uno de los empleados existentes.')
+
+        self.cleaned_data['identificacion_empleado'] = empleado.identificacion_empleado
+        return nombre
+
+    class Meta:
+        model = Cliente
+        fields = ['identificacion_cliente', 'nombre_cliente', 'primer_apellido_cliente', 
+                 'segundo_apellido_cliente', 'correo_cliente', 'telefono_cliente', 
+                 'identificacion_empleado', 'comentarios']
+        widgets = {
+            'identificacion_cliente': forms.NumberInput(attrs={'class': 'form-control'}),
+            'nombre_cliente': forms.TextInput(attrs={'class': 'form-control'}),
+            'primer_apellido_cliente': forms.TextInput(attrs={'class': 'form-control'}),
+            'segundo_apellido_cliente': forms.TextInput(attrs={'class': 'form-control'}),
+            'correo_cliente': forms.EmailInput(attrs={'class': 'form-control'}),
+            'telefono_cliente': forms.TextInput(attrs={'class': 'form-control'}),
+            'comentarios': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+def clientes_list(request):
+    """
+    Vista que lista todos los clientes registrados.
+    
+    Muestra una tabla con los datos principales de cada cliente.
+    Permite editar, eliminar y crear nuevos clientes.
+    """
+    clientes = Cliente.objects.all()
+    return render(request, 'core/clientes_list.html', {'clientes': clientes})
+
+
+def cliente_create(request):
+    """
+    Vista para crear un nuevo cliente.
+    
+    - GET: Muestra el formulario en blanco
+    - POST: Guarda el cliente si el formulario es válido
+    """
+    if request.method == 'POST':
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('clientes_list')
+    else:
+        form = ClienteForm()
+    empleados = Empleado.objects.all()
+    return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Crear Cliente', 'empleados': empleados})
+
+
+def cliente_edit(request, pk):
+    """
+    Vista para editar un cliente existente.
+    
+    - GET: Muestra el formulario con los datos actuales del cliente
+    - POST: Actualiza el cliente si el formulario es válido
+    """
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            return redirect('clientes_list')
+    else:
+        form = ClienteForm(instance=cliente)
+    empleados = Empleado.objects.all()
+    return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Editar Cliente', 'empleados': empleados})
+
+
+def cliente_delete(request, pk):
+    """
+    Vista para eliminar un cliente.
+    
+    - GET: Muestra página de confirmación
+    - POST: Elimina el cliente definitivamente
+    """
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        cliente.delete()
+        return redirect('clientes_list')
+    return render(request, 'core/cliente_confirm_delete.html', {'cliente': cliente})
+
+
+# =========================================================================================
+# CRUD: TIPOS DE PRODUCTO (Interfaz Web)
+# =========================================================================================
+
+class TipoProductoForm(forms.ModelForm):
+    """
+    Formulario para crear y editar tipos de productos.
+    
+    Un tipo de producto es una categoría (Relojes, Repuestos, Servicios, etc.)
+    """
+    class Meta:
+        model = TipoProducto
+        fields = ['nombre_tipo_producto']
+        widgets = {
+            'nombre_tipo_producto': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Relojes, Repuestos, Servicios'}),
+        }
+
+
+def tipos_producto_list(request):
+    """
+    Vista que lista todos los tipos de productos disponibles.
+    
+    Muestra cuántos productos hay de cada tipo y permite administrarlos.
+    """
+    tipos = TipoProducto.objects.all()
+    return render(request, 'core/tipos_producto_list.html', {'tipos': tipos})
+
+
+def tipo_producto_create(request):
+    """
+    Vista para crear un nuevo tipo de producto.
+    
+    Los tipos de producto son categorías para organizar el inventario.
+    """
+    if request.method == 'POST':
+        form = TipoProductoForm(request.POST)
+        if form.is_valid():
+            tipo = form.save(commit=False)
+            tipo.codigo_tipo_producto = obtener_siguiente_valor('SEQ_TIPO_PRODUCTOS')
+            tipo.save()
+            return redirect('tipos_producto_list')
+    else:
+        form = TipoProductoForm()
+    return render(request, 'core/tipo_producto_form.html', {'form': form, 'title': 'Crear Tipo de Producto'})
+
+
+def tipo_producto_edit(request, pk):
+    """
+    Vista para editar un tipo de producto existente.
+    """
+    tipo = get_object_or_404(TipoProducto, pk=pk)
+    if request.method == 'POST':
+        form = TipoProductoForm(request.POST, instance=tipo)
+        if form.is_valid():
+            form.save()
+            return redirect('tipos_producto_list')
+    else:
+        form = TipoProductoForm(instance=tipo)
+    return render(request, 'core/tipo_producto_form.html', {'form': form, 'title': 'Editar Tipo de Producto'})
+
+
+def tipo_producto_delete(request, pk):
+    """
+    Vista para eliminar un tipo de producto.
+    
+    Muestra confirmación antes de eliminar.
+    """
+    tipo = get_object_or_404(TipoProducto, pk=pk)
+    if request.method == 'POST':
+        tipo.delete()
+        return redirect('tipos_producto_list')
+    return render(request, 'core/tipo_producto_confirm_delete.html', {'tipo': tipo})
+
+
+# =========================================================================================
+# CRUD: PRODUCTOS (Interfaz Web)
+# =========================================================================================
+
+class ProductoForm(forms.ModelForm):
+    """
+    Formulario para crear y editar productos.
+    
+    Un producto es un artículo vendible: relojes, repuestos, servicios, etc.
+    """
+    marca_nombre = forms.CharField(
+        required=True,
+        label='Marca',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Escribe o selecciona una marca',
+        })
+    )
+    codigo_marca = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+    tipo_producto_nombre = forms.CharField(
+        required=True,
+        label='Tipo de Producto',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Escribe o selecciona un tipo de producto',
+        })
+    )
+    codigo_tipo_producto = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+    ultima_actualizacion_producto = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'disabled': 'disabled'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['codigo_marca'].required = False
+        self.fields['codigo_tipo_producto'].required = False
+        if self.instance and self.instance.pk:
+            marca = Marca.objects.filter(codigo_marca=self.instance.codigo_marca).first()
+            tipo = TipoProducto.objects.filter(codigo_tipo_producto=self.instance.codigo_tipo_producto).first()
+            if marca:
+                self.initial['marca_nombre'] = marca.nombre_marca
+                self.initial['codigo_marca'] = marca.codigo_marca
+            if tipo:
+                self.initial['tipo_producto_nombre'] = tipo.nombre_tipo_producto
+                self.initial['codigo_tipo_producto'] = tipo.codigo_tipo_producto
+
+    def clean_marca_nombre(self):
+        nombre = self.cleaned_data.get('marca_nombre')
+        if not nombre:
+            raise forms.ValidationError('Selecciona una marca válida.')
+
+        marca = Marca.objects.filter(nombre_marca__iexact=nombre).first()
+        if not marca:
+            raise forms.ValidationError('Marca no válida. Selecciona una marca existente.')
+
+        self.cleaned_data['codigo_marca'] = marca.codigo_marca
+        return nombre
+
+    def clean_tipo_producto_nombre(self):
+        nombre = self.cleaned_data.get('tipo_producto_nombre')
+        if not nombre:
+            raise forms.ValidationError('Selecciona un tipo de producto válido.')
+
+        tipo = TipoProducto.objects.filter(nombre_tipo_producto__iexact=nombre).first()
+        if not tipo:
+            raise forms.ValidationError('Tipo de producto no válido. Selecciona un tipo existente.')
+
+        self.cleaned_data['codigo_tipo_producto'] = tipo.codigo_tipo_producto
+        return nombre
+
+    class Meta:
+        model = Producto
+        fields = ['nombre_producto', 'codigo_marca', 'codigo_tipo_producto',
+                 'modelo_producto', 'precio_venta_producto', 'costo_producto', 'garantia_producto',
+                 'descripcion_producto', 'stock_disponible_producto', 'stock_minimo_producto',
+                 'controla_stock', 'ultima_actualizacion_producto']
+        widgets = {
+            'nombre_producto': forms.TextInput(attrs={'class': 'form-control'}),
+            'modelo_producto': forms.TextInput(attrs={'class': 'form-control'}),
+            'precio_venta_producto': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'costo_producto': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'garantia_producto': forms.NumberInput(attrs={'class': 'form-control'}),
+            'descripcion_producto': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'stock_disponible_producto': forms.NumberInput(attrs={'class': 'form-control'}),
+            'stock_minimo_producto': forms.NumberInput(attrs={'class': 'form-control'}),
+            'controla_stock': forms.Select(attrs={'class': 'form-select'}, choices=[('S', 'Sí'), ('N', 'No')]),
+        }
+
+
+def productos_list(request):
+    """
+    Vista que lista todos los productos en el inventario.
+    
+    Muestra información importante:
+    - Stock actual vs mínimo (alerta si está bajo)
+    - Precios y margen de ganancia
+    - Disponibilidad para venta
+    """
+    productos = Producto.objects.all()
+    return render(request, 'core/productos_list.html', {'productos': productos})
+
+
+def producto_create(request):
+    """
+    Vista para crear un nuevo producto.
+    
+    Se requiere:
+    - Información básica (nombre, código, modelo)
+    - Pricing (costo, precio de venta)
+    - Control de inventario (stock inicial, mínimo)
+    - Información de garantía y descripción
+    """
+    if request.method == 'POST':
+        form = ProductoForm(request.POST)
+        if form.is_valid():
+            producto = form.save(commit=False)
+            producto.codigo_producto = obtener_siguiente_valor('SEQ_PRODUCTOS')
+            producto.ultima_actualizacion_producto = date.today()
+            producto.save()
+            return redirect('productos_list')
+    else:
+        form = ProductoForm()
+    marcas = Marca.objects.all()
+    tipos = TipoProducto.objects.all()
+    return render(request, 'core/producto_form.html', {'form': form, 'title': 'Crear Producto', 'marcas': marcas, 'tipos': tipos})
+
+
+def producto_edit(request, pk):
+    """
+    Vista para editar un producto existente.
+    
+    Permite cambiar todos los atributos incluyendo precios e inventario.
+    """
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, instance=producto)
+        if form.is_valid():
+            producto_actualizado = form.save(commit=False)
+            producto_actualizado.ultima_actualizacion_producto = date.today()
+            producto_actualizado.save()
+            return redirect('productos_list')
+    else:
+        form = ProductoForm(instance=producto)
+    marcas = Marca.objects.all()
+    tipos = TipoProducto.objects.all()
+    return render(request, 'core/producto_form.html', {'form': form, 'title': 'Editar Producto', 'producto': producto, 'marcas': marcas, 'tipos': tipos})
+
+
+def producto_delete(request, pk):
+    """
+    Vista para eliminar un producto del catálogo.
+    
+    Muestra confirmación antes de eliminar definitivamente.
+    """
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == 'POST':
+        producto.delete()
+        return redirect('productos_list')
+    return render(request, 'core/producto_confirm_delete.html', {'producto': producto})
 
 
 def obtener_siguiente_valor(secuencia):
@@ -51,53 +766,53 @@ def obtener_siguiente_valor(secuencia):
 
 # Login del Empleado
 @api_view(['POST'])
+@permission_classes([AllowAny])
+@authentication_classes([])
 def login_empleado(request):
-    return Response(
-        {
-            "mensaje": "Login desactivado temporalmente"
-        }
-    )
-    # correo = request.data.get('correo')
-    # contrasena = request.data.get('contrasena')
+    correo = request.data.get('correo')
+    contrasena = request.data.get('contrasena')
 
-    # if not correo or not contrasena:
-    #     return Response(
-    #         {
-    #             "error": "Correo y contraseña son obligatorios"
-    #         }, status= 400
-    #     )
+    if not correo or not contrasena:
+        return Response(
+            {
+                "error": "Correo y contraseña son obligatorios"
+            }, status= 400
+        )
 
-    # try:
-    #     empleado = Empleado.objects.get(correo_empleado = correo)
+    try:
+        empleado = Empleado.objects.get(correo_empleado = correo)
 
-    #     if not check_password(contrasena, empleado.hash_contrasena_empleado):
-    #         return Response(
-    #             {
-    #                 "error:": "Credenciales invalidas"
-    #             }, status= 401
-    #         )
+        if not check_password(contrasena, empleado.password):
+            return Response(
+                {
+                    "error": "Credenciales invalidas"
+                }, status= 401
+            )
         
-    #     # Generar Token Manual
-    #     refresh = RefreshToken()
+        # Generar Token Manual
+        refresh = RefreshToken.for_user(empleado)
 
-        
+        refresh['perfil'] = empleado.codigo_perfil_empleado
 
-    #     refresh['empleado_id'] = empleado.identificacion_empleado
-    #     refresh['correo'] = empleado.correo_empleado
-    #     refresh['perfil'] = empleado.codigo_perfil_empleado
+        # Validar Contraseña
+        return Response({
+            "mensaje": "Login Exitoso",
+            "empleado": {
+                "id": empleado.identificacion_empleado,
+                "nombre": empleado.nombre_empleado,
+                "correo": empleado.correo_empleado,
+                "perfil": empleado.codigo_perfil_empleado
+            },
+            "access": str(refresh.access_token),
+            "refresh": str(refresh)
+        })
 
-    #     # Validar Contraseña
-    #     return Response({
-    #         "mensaje": "Login Exitoso",
-    #         "empleado": {
-    #             "id": empleado.identificacion_empleado,
-    #             "nombre": empleado.nombre_empleado,
-    #             "correo": empleado.correo_empleado,
-    #             "perfil": empleado.codigo_perfil_empleado
-    #         },
-    #         "access": str(refresh.access_token),
-    #         "refresh": str(refresh)
-    #     })
+    except Empleado.DoesNotExist:
+        return Response(
+            {
+                "error": "Usuario no encontrado"
+            }, status= 404
+        )
 
     # except Empleado.DoesNotExist:
     #     return Response(

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roles - Imperio del Reloj</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <script>
+        function verificarAutenticacion() {
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!accessToken || !refreshToken) {
+                window.location.href = '/login/';
+            }
+        }
+        verificarAutenticacion();
+    </script>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/empleados/">Empleados</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/clientes/">Clientes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ventas/">Ventas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/productos/">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/seguridad/">Seguridad</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light ms-2" href="/logout/">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="{% url 'seguridad' %}" class="btn btn-outline-secondary">← Volver</a>
+            <h1 class="mb-0">Lista de Roles</h1>
+            <a href="{% url 'rol_create' %}" class="btn btn-primary">Crear Nuevo Rol</a>
+        </div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rol in roles %}
+                <tr>
+                    <td>{{ rol.codigo_rol }}</td>
+                    <td>{{ rol.nombre_rol }}</td>
+                    <td>
+                        <a href="{% url 'rol_edit' rol.codigo_rol %}" class="btn btn-sm btn-warning">Editar</a>
+                        <a href="{% url 'rol_delete' rol.codigo_rol %}" class="btn btn-sm btn-danger">Eliminar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -7,7 +7,6 @@ from .views import *
 # router.register(r'empleados', EmpleadoViewset)
 
 urlpatterns = [
-    # path('', include(router.urls)),
     path('login/', login_empleado),
     path('clientes/', listar_clientes),
     path('clientes/crear/', crear_cliente),

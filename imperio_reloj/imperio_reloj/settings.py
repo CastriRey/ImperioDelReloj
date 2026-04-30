@@ -48,8 +48,11 @@ LOGGING = {
 }
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'core.utils.authentication.CustomJWTAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'core.utils.permissions.PermisoDinamico',
     ),
 }
 

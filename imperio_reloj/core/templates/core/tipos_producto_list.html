@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tipos de Producto - Imperio del Reloj</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <script>
+        // Verificar autenticación: si no hay tokens en localStorage, redirigir a login
+        function verificarAutenticacion() {
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!accessToken || !refreshToken) {
+                window.location.href = '/login/';
+            }
+        }
+        verificarAutenticacion();
+    </script>
+
+    <!-- Barra de navegación con enlaces a secciones principales -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/empleados/">Empleados</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/clientes/">Clientes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/productos/">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/tipos-productos/">Tipos de Producto</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/seguridad/">Seguridad</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light ms-2" href="/logout/">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenedor principal con la lista de tipos de producto -->
+    <div class="container mt-5">
+        <!-- Encabezado con título y botón para crear nuevo tipo -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Tipos de Producto</h1>
+            <a href="{% url 'tipo_producto_create' %}" class="btn btn-success">+ Nuevo Tipo</a>
+        </div>
+
+        <!-- Tabla que muestra todos los tipos de productos -->
+        {% if tipos %}
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Itera sobre todos los tipos de producto y muestra su información en cada fila -->
+                    {% for tipo in tipos %}
+                    <tr>
+                        <!-- Código único del tipo de producto -->
+                        <td><strong>{{ tipo.codigo_tipo_producto }}</strong></td>
+                        
+                        <!-- Nombre del tipo de producto (ej: Relojes, Repuestos, Servicios) -->
+                        <td>{{ tipo.nombre_tipo_producto }}</td>
+                        
+                        <!-- Botones de acción: editar o eliminar -->
+                        <td>
+                            <!-- Botón para editar tipo de producto -->
+                            <a href="{% url 'tipo_producto_edit' tipo.codigo_tipo_producto %}" class="btn btn-sm btn-warning">
+                                Editar
+                            </a>
+                            <!-- Botón para eliminar tipo de producto -->
+                            <a href="{% url 'tipo_producto_delete' tipo.codigo_tipo_producto %}" class="btn btn-sm btn-danger">
+                                Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <!-- Mensaje si no hay tipos de producto registrados -->
+        <div class="alert alert-info">
+            No hay tipos de producto registrados. <a href="{% url 'tipo_producto_create' %}">Crear el primero</a>
+        </div>
+        {% endif %}
+
+        <!-- Botón para volver al dashboard -->
+        <div class="mt-4">
+            <a href="/dashboard/" class="btn btn-secondary">← Volver</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

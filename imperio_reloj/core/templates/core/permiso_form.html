@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Imperio del Reloj</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <script>
+        function verificarAutenticacion() {
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!accessToken || !refreshToken) {
+                window.location.href = '/login/';
+            }
+        }
+        verificarAutenticacion();
+    </script>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/seguridad/">Seguridad</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/logout/">Cerrar Sesión</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="{% url 'permisos_list' %}" class="btn btn-outline-secondary">← Volver</a>
+            <h1 class="mb-0">{{ title }}</h1>
+            <div></div>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="mb-3">
+                <label class="form-label">Perfil</label>
+                {{ form.codigo_perfil_permiso }}
+                {% if form.codigo_perfil_permiso.errors %}
+                <div class="text-danger">{{ form.codigo_perfil_permiso.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Ruta</label>
+                {{ form.codigo_ruta_permiso }}
+                {% if form.codigo_ruta_permiso.errors %}
+                <div class="text-danger">{{ form.codigo_ruta_permiso.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Insertar</label>
+                {{ form.insertar }}
+                {% if form.insertar.errors %}
+                <div class="text-danger">{{ form.insertar.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Modificar</label>
+                {{ form.modificar }}
+                {% if form.modificar.errors %}
+                <div class="text-danger">{{ form.modificar.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Eliminar</label>
+                {{ form.eliminar }}
+                {% if form.eliminar.errors %}
+                <div class="text-danger">{{ form.eliminar.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Consultar</label>
+                {{ form.consultar }}
+                {% if form.consultar.errors %}
+                <div class="text-danger">{{ form.consultar.errors }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'permisos_list' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

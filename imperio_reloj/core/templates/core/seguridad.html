@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguridad - Imperio del Reloj</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <script>
+        // Verificar autenticación: si no hay tokens, redirigir a login
+        function verificarAutenticacion() {
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!accessToken || !refreshToken) {
+                window.location.href = '/login/';
+            }
+        }
+        verificarAutenticacion();
+    </script>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/empleados/">Empleados</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/clientes/">Clientes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ventas/">Ventas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/productos/">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/seguridad/">Seguridad</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light ms-2" href="/logout/">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <h1>Gestión de Seguridad</h1>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Roles</h5>
+                        <p class="card-text">Gestionar roles del sistema.</p>
+                        <a href="{% url 'roles_list' %}" class="btn btn-primary">Ir a Roles</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Perfiles</h5>
+                        <p class="card-text">Administrar perfiles.</p>
+                        <a href="{% url 'perfiles_list' %}" class="btn btn-primary">Ir a Perfiles</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Rutas</h5>
+                        <p class="card-text">Control de rutas.</p>
+                        <a href="{% url 'rutas_list' %}" class="btn btn-primary">Ir a Rutas</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Permisos</h5>
+                        <p class="card-text">Asignar permisos.</p>
+                        <a href="{% url 'permisos_list' %}" class="btn btn-primary">Ir a Permisos</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

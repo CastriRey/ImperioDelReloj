@@ -1,15 +1,11 @@
 from rest_framework import serializers
-from .models import Cliente, Empleado, Servicio
+from .models import Cliente, Empleado
 from django.contrib.auth.hashers import make_password
-
-'''
-Un Serializer convierte los objetos de Python en JSON viceversa
-'''
 
 # Crear el HASH de contrasena
 def create(self, validated_data):
-    validated_data['hash_contrasena_empleado'] = make_password(
-        validated_data['hash_contrasena_empleado']
+    validated_data['password'] = make_password(
+        validated_data['password']
     )
     return super().create(validated_data)
 
@@ -24,13 +20,11 @@ class EmpleadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Empleado
         fields = '__all__'
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cliente
-        fields = '__all__'
-
-class ServicioSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Servicio
         fields = '__all__'

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - Imperio del Reloj</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <script>
+        // Verificar autenticación: si no hay tokens en localStorage, redirigir a login
+        // Esto asegura que solo usuarios autenticados accedan a esta página
+        function verificarAutenticacion() {
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!accessToken || !refreshToken) {
+                window.location.href = '/login/';
+            }
+        }
+        verificarAutenticacion();
+    </script>
+
+    <!-- Barra de navegación con enlaces a secciones principales -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/empleados/">Empleados</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/clientes/">Clientes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/productos/">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/tipos-productos/">Tipos de Producto</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/seguridad/">Seguridad</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light ms-2" href="/logout/">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenedor principal con la lista de clientes -->
+    <div class="container mt-5">
+        <!-- Encabezado con título y botón para crear nuevo cliente -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Clientes</h1>
+            <a href="{% url 'cliente_create' %}" class="btn btn-success">+ Nuevo Cliente</a>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="input-group shadow-sm">
+                    <span class="input-group-text bg-dark text-white">
+                        <img src="https://www.pngkey.com/png/full/87-872187_lupa-search-icon-white-png.png" alt="Buscar" width="20" >
+                    </span>
+                    <input 
+                        type="text" 
+                        id="buscadorClientes" 
+                        class="form-control" 
+                        placeholder="Buscar por nombre, apellido o ID de cliente..."
+                        onkeyup="filtrarClientes()"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla que muestra todos los clientes registrados -->
+        {% if clientes %}
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre Completo</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>Empleado Asignado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Itera sobre todos los clientes y muestra su información en cada fila -->
+                    {% for cliente in clientes %}
+                    <tr>
+                        <!-- ID del cliente -->
+                        <td><strong>{{ cliente.identificacion_cliente }}</strong></td>
+                        <!-- Nombre completo del cliente (nombre + apellidos) -->
+                        <td>
+                            {{ cliente.nombre_cliente }}
+                            {{ cliente.primer_apellido_cliente }}
+                            {{ cliente.segundo_apellido_cliente|default:'' }}
+                        </td>
+                        <!-- Email de contacto -->
+                        <td>{{ cliente.correo_cliente }}</td>
+                        <!-- Teléfono de contacto -->
+                        <td>{{ cliente.telefono_cliente }}</td>
+                        <!-- ID del empleado relacionado (quién atiende al cliente) -->
+                        <td>{{ cliente.identificacion_empleado }}</td>
+                        <!-- Botones de acción: editar o eliminar -->
+                        <td>
+                            <!-- Botón para editar cliente -->
+                            <a href="{% url 'cliente_edit' cliente.identificacion_cliente %}" class="btn btn-sm btn-warning">
+                                Editar
+                            </a>
+                            <!-- Botón para eliminar cliente (muestra confirmación primero) -->
+                            <a href="{% url 'cliente_delete' cliente.identificacion_cliente %}" class="btn btn-sm btn-danger">
+                                Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <!-- Mensaje si no hay clientes registrados -->
+        <div class="alert alert-info">
+            No hay clientes registrados. <a href="{% url 'cliente_create' %}">Crear el primero</a>
+        </div>
+        {% endif %}
+
+        <!-- Botón para volver al dashboard -->
+        <div class="mt-4">
+            <a href="/dashboard/" class="btn btn-secondary">← Volver</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function filtrarClientes() {
+            const input = document.getElementById("buscadorClientes");
+            const filtro = input.value.toLowerCase();
+            const filas = document.querySelectorAll("table tbody tr");
+
+            filas.forEach(fila => {
+                const textoFila = fila.innerText.toLowerCase();
+
+                if (textoFila.includes(filtro)) {
+                    fila.style.display = "";
+                } else {
+                    fila.style.display = "none";
+                }
+            });
+        }
+    </script>
+</body>
+</html>
