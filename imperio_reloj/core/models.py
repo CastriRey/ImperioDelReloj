@@ -432,23 +432,30 @@ class Marca(models.Model):
     """
     Modelo que representa una Marca de productos.
     
-    Las marcas son fabricantes de relojes y accesorios:
-    - Rolex
-    - Omega
-    - TAG Heuer
-    - Bulova
-    - etc.
+    Las marcas son fabricantes de relojes y accesorios. Cada producto
+    está asociado a una marca que indica su fabricante.
+    
+    Ejemplos de marcas:
+    - Rolex: Relojes de lujo suizos
+    - Omega: Relojes suizos de precisión
+    - TAG Heuer: Relojes deportivos de lujo
+    - Bulova: Relojes americanos de calidad
+    - Seiko: Relojes japoneses
+    - Casio: Relojes digitales y análogos
     
     Atributos:
-    - codigo_marca: ID único de la marca (PK)
-    - nombre_marca: Nombre de la marca
+    - codigo_marca: ID único de la marca (PK, auto-generado por Oracle)
+    - nombre_marca: Nombre del fabricante/marca
+    
+    Nota: El código se genera automáticamente con la secuencia SEQ_MARCAS
+    en la base de datos Oracle, no se solicita al usuario.
     """
     codigo_marca = models.IntegerField(primary_key=True)
     nombre_marca = models.CharField(max_length=20)
 
     class Meta:
         db_table = 'MARCAS'
-        managed = False
+        managed = False  # La tabla existe en Oracle, Django no la crea/modifica
 
     def __str__(self):
         """Representación de la marca"""
@@ -628,55 +635,78 @@ class DetalleVenta(models.Model):
 
 class TipoServicio(models.Model):
     """
-    Modelo que representa tipos de Servicios disponibles.
+    Modelo que representa tipos de Servicios Técnicos disponibles.
     
-    Tipos de servicios:
-    - Limpieza
-    - Reparación
+    Los tipos de servicios son las categorías de reparaciones/mantenimientos
+    que la tienda puede realizar sobre los relojes.
+    
+    Ejemplos de tipos:
+    - Limpieza profunda
+    - Reparación de mecanismo
     - Cambio de batería
-    - Cambio de correa
+    - Cambio de correa/pulsera
     - Revisión general
+    - Ajuste de tamaño
     
     Atributos:
-    - codigo_tipo_servicio: ID único (PK)
-    - nombre_tipo_servicio: Nombre descriptivo
+    - codigo_tipo_servicio: ID único del tipo (PK, auto-generado por Oracle)
+    - nombre_tipo_servicio: Nombre descriptivo del tipo de servicio
+    
+    Nota: El código se genera automáticamente con la secuencia SEQ_TIPOS_SERVICIO
+    en la base de datos Oracle, no se solicita al usuario.
     """
     codigo_tipo_servicio = models.IntegerField(primary_key=True)
     nombre_tipo_servicio = models.CharField(max_length=30)
 
     class Meta:
         db_table = 'TIPOS_SERVICIO'
-        managed = False
+        managed = False  # La tabla existe en Oracle, Django no la crea/modifica
 
     def __str__(self):
         """Representación del tipo de servicio"""
         return self.nombre_tipo_servicio
 
+    def obtener_descripcion(self):
+        """Retorna el nombre del tipo de servicio"""
+        return self.nombre_tipo_servicio
+
 
 class EstadoServicio(models.Model):
     """
-    Modelo que representa estados posibles de un Servicio.
+    Modelo que representa estados posibles de un Servicio Técnico.
     
-    Estados:
-    - Recibido (acaba de llegar)
-    - En reparación
-    - Reparado
-    - Completado/Entregado
-    - Rechazado
+    Los estados de servicio reflejan el progreso y situación actual
+    de una reparación/mantenimiento en el taller.
+    
+    Ejemplos de estados:
+    - Recibido: El reloj acaba de llegar al taller
+    - Diagnóstico: Se está evaluando el problema
+    - En reparación: Se está realizando la reparación
+    - Reparado: La reparación está lista
+    - En prueba: Se está probando el funcionamiento
+    - Completado/Entregado: El reloj se entregó al cliente
+    - Rechazado: No se pudo reparar o cliente rechazó
     
     Atributos:
-    - codigo_estado_servicio: ID único (PK)
-    - nombre_estado_reparacion: Nombre del estado
+    - codigo_estado_servicio: ID único del estado (PK, auto-generado por Oracle)
+    - nombre_estado_reparacion: Nombre del estado del servicio
+    
+    Nota: El código se genera automáticamente con la secuencia SEQ_ESTADOS_SERVICIO
+    en la base de datos Oracle, no se solicita al usuario.
     """
     codigo_estado_servicio = models.IntegerField(primary_key=True)
     nombre_estado_reparacion = models.CharField(max_length=20)
 
     class Meta:
         db_table = 'ESTADOS_SERVICIO'
-        managed = False
+        managed = False  # La tabla existe en Oracle, Django no la crea/modifica
 
     def __str__(self):
         """Representación del estado"""
+        return self.nombre_estado_reparacion
+
+    def obtener_descripcion(self):
+        """Retorna el nombre del estado"""
         return self.nombre_estado_reparacion
 
 
@@ -717,21 +747,36 @@ class Servicio(models.Model):
 
 class MetodoPago(models.Model):
     """
-    Modelo que representa Métodos de Pago disponibles.
+    Modelo que representa Métodos de Pago disponibles en el sistema.
     
-    Métodos:
+    Los métodos de pago son las formas en que los clientes pueden pagar sus compras.
+    El sistema permite múltiples métodos de pago.
+    
+    Ejemplos de métodos:
     - Efectivo
     - Tarjeta de Crédito
     - Tarjeta de Débito
     - Transferencia
+    - Cheque
     
     Atributos:
-    - codigo_metodo_pago: ID único (PK)
-    - nombre_metodo_pago: Nombre del método
+    - codigo_metodo_pago: ID único del método (PK, auto-generado por Oracle)
+    - nombre_metodo_pago: Nombre descriptivo del método de pago
+    
+    Nota: El código se genera automáticamente con la secuencia SEQ_METODOS_PAGO
+    en la base de datos Oracle, no se solicita al usuario.
     """
     codigo_metodo_pago = models.IntegerField(primary_key=True)
     nombre_metodo_pago = models.CharField(max_length=30)
 
     class Meta:
         db_table = 'METODOS_PAGO'
-        managed = False
+        managed = False  # La tabla existe en Oracle, Django no la crea/modifica
+
+    def __str__(self):
+        """Representación del método de pago"""
+        return self.nombre_metodo_pago
+
+    def obtener_descripcion(self):
+        """Retorna el nombre del método de pago"""
+        return self.nombre_metodo_pago

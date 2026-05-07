@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from .models import *
 from .serializers import ClienteSerializer, EmpleadoSerializer
 from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.decorators import login_required
 from django.db import connection
 from .utils.permissions import PermisoDinamico
 from .utils.authentication import CustomJWTAuthentication
@@ -749,6 +750,219 @@ def obtener_siguiente_valor(secuencia):
         cursor.execute(f"SELECT {secuencia}.NEXTVAL FROM DUAL")
         row = cursor.fetchone()
     return row[0]
+
+
+# =========================================================================================
+# CRUD: MARCAS (Interfaz Web)
+# =========================================================================================
+
+class MarcaForm(forms.ModelForm):
+    """Formulario para crear y editar marcas de productos"""
+    
+    class Meta:
+        model = Marca
+        fields = ['nombre_marca']
+        widgets = {
+            'nombre_marca': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+def marcas_list(request):
+    """Lista todas las marcas"""
+    marcas = Marca.objects.all()
+    return render(request, 'core/marcas_list.html', {'marcas': marcas})
+
+def marca_create(request):
+    """Crear una nueva marca"""
+    if request.method == 'POST':
+        form = MarcaForm(request.POST)
+        if form.is_valid():
+            marca = form.save(commit=False)
+            marca.codigo_marca = obtener_siguiente_valor('SEQ_MARCAS')
+            marca.save()
+            return redirect('marcas_list')
+    else:
+        form = MarcaForm()
+    return render(request, 'core/marca_form.html', {'form': form, 'title': 'Crear Marca'})
+
+def marca_edit(request, pk):
+    """Editar una marca existente"""
+    marca = get_object_or_404(Marca, pk=pk)
+    if request.method == 'POST':
+        form = MarcaForm(request.POST, instance=marca)
+        if form.is_valid():
+            form.save()
+            return redirect('marcas_list')
+    else:
+        form = MarcaForm(instance=marca)
+    return render(request, 'core/marca_form.html', {'form': form, 'title': 'Editar Marca', 'marca': marca})
+
+def marca_delete(request, pk):
+    """Eliminar una marca"""
+    marca = get_object_or_404(Marca, pk=pk)
+    if request.method == 'POST':
+        marca.delete()
+        return redirect('marcas_list')
+    return render(request, 'core/marca_confirm_delete.html', {'marca': marca})
+
+
+# =========================================================================================
+# CRUD: MÉTODOS DE PAGO (Interfaz Web)
+# =========================================================================================
+
+class MetodoPagoForm(forms.ModelForm):
+    """Formulario para crear y editar métodos de pago"""
+    
+    class Meta:
+        model = MetodoPago
+        fields = ['nombre_metodo_pago']
+        widgets = {
+            'nombre_metodo_pago': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+def metodos_pago_list(request):
+    """Lista todos los métodos de pago"""
+    metodos = MetodoPago.objects.all()
+    return render(request, 'core/metodos_pago_list.html', {'metodos': metodos})
+
+def metodo_pago_create(request):
+    """Crear un nuevo método de pago"""
+    if request.method == 'POST':
+        form = MetodoPagoForm(request.POST)
+        if form.is_valid():
+            metodo = form.save(commit=False)
+            metodo.codigo_metodo_pago = obtener_siguiente_valor('SEQ_METODOS_PAGO')
+            metodo.save()
+            return redirect('metodos_pago_list')
+    else:
+        form = MetodoPagoForm()
+    return render(request, 'core/metodo_pago_form.html', {'form': form, 'title': 'Crear Método de Pago'})
+
+def metodo_pago_edit(request, pk):
+    """Editar un método de pago existente"""
+    metodo = get_object_or_404(MetodoPago, pk=pk)
+    if request.method == 'POST':
+        form = MetodoPagoForm(request.POST, instance=metodo)
+        if form.is_valid():
+            form.save()
+            return redirect('metodos_pago_list')
+    else:
+        form = MetodoPagoForm(instance=metodo)
+    return render(request, 'core/metodo_pago_form.html', {'form': form, 'title': 'Editar Método de Pago', 'metodo': metodo})
+
+def metodo_pago_delete(request, pk):
+    """Eliminar un método de pago"""
+    metodo = get_object_or_404(MetodoPago, pk=pk)
+    if request.method == 'POST':
+        metodo.delete()
+        return redirect('metodos_pago_list')
+    return render(request, 'core/metodo_pago_confirm_delete.html', {'metodo': metodo})
+
+
+# =========================================================================================
+# CRUD: TIPOS DE SERVICIO (Interfaz Web)
+# =========================================================================================
+
+class TipoServicioForm(forms.ModelForm):
+    """Formulario para crear y editar tipos de servicio"""
+    
+    class Meta:
+        model = TipoServicio
+        fields = ['nombre_tipo_servicio']
+        widgets = {
+            'nombre_tipo_servicio': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+def tipos_servicio_list(request):
+    """Lista todos los tipos de servicio"""
+    tipos = TipoServicio.objects.all()
+    return render(request, 'core/tipos_servicio_list.html', {'tipos': tipos})
+
+def tipo_servicio_create(request):
+    """Crear un nuevo tipo de servicio"""
+    if request.method == 'POST':
+        form = TipoServicioForm(request.POST)
+        if form.is_valid():
+            tipo = form.save(commit=False)
+            tipo.codigo_tipo_servicio = obtener_siguiente_valor('SEQ_TIPOS_SERVICIO')
+            tipo.save()
+            return redirect('tipos_servicio_list')
+    else:
+        form = TipoServicioForm()
+    return render(request, 'core/tipo_servicio_form.html', {'form': form, 'title': 'Crear Tipo de Servicio'})
+
+def tipo_servicio_edit(request, pk):
+    """Editar un tipo de servicio existente"""
+    tipo = get_object_or_404(TipoServicio, pk=pk)
+    if request.method == 'POST':
+        form = TipoServicioForm(request.POST, instance=tipo)
+        if form.is_valid():
+            form.save()
+            return redirect('tipos_servicio_list')
+    else:
+        form = TipoServicioForm(instance=tipo)
+    return render(request, 'core/tipo_servicio_form.html', {'form': form, 'title': 'Editar Tipo de Servicio', 'tipo': tipo})
+
+def tipo_servicio_delete(request, pk):
+    """Eliminar un tipo de servicio"""
+    tipo = get_object_or_404(TipoServicio, pk=pk)
+    if request.method == 'POST':
+        tipo.delete()
+        return redirect('tipos_servicio_list')
+    return render(request, 'core/tipo_servicio_confirm_delete.html', {'tipo': tipo})
+
+
+# =========================================================================================
+# CRUD: ESTADOS DE SERVICIO (Interfaz Web)
+# =========================================================================================
+
+class EstadoServicioForm(forms.ModelForm):
+    """Formulario para crear y editar estados de servicio"""
+    
+    class Meta:
+        model = EstadoServicio
+        fields = ['nombre_estado_reparacion']
+        widgets = {
+            'nombre_estado_reparacion': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+def estados_servicio_list(request):
+    """Lista todos los estados de servicio"""
+    estados = EstadoServicio.objects.all()
+    return render(request, 'core/estados_servicio_list.html', {'estados': estados})
+
+def estado_servicio_create(request):
+    """Crear un nuevo estado de servicio"""
+    if request.method == 'POST':
+        form = EstadoServicioForm(request.POST)
+        if form.is_valid():
+            estado = form.save(commit=False)
+            estado.codigo_estado_servicio = obtener_siguiente_valor('SEQ_ESTADOS_SERVICIO')
+            estado.save()
+            return redirect('estados_servicio_list')
+    else:
+        form = EstadoServicioForm()
+    return render(request, 'core/estado_servicio_form.html', {'form': form, 'title': 'Crear Estado de Servicio'})
+
+def estado_servicio_edit(request, pk):
+    """Editar un estado de servicio existente"""
+    estado = get_object_or_404(EstadoServicio, pk=pk)
+    if request.method == 'POST':
+        form = EstadoServicioForm(request.POST, instance=estado)
+        if form.is_valid():
+            form.save()
+            return redirect('estados_servicio_list')
+    else:
+        form = EstadoServicioForm(instance=estado)
+    return render(request, 'core/estado_servicio_form.html', {'form': form, 'title': 'Editar Estado de Servicio', 'estado': estado})
+
+def estado_servicio_delete(request, pk):
+    """Eliminar un estado de servicio"""
+    estado = get_object_or_404(EstadoServicio, pk=pk)
+    if request.method == 'POST':
+        estado.delete()
+        return redirect('estados_servicio_list')
+    return render(request, 'core/estado_servicio_confirm_delete.html', {'estado': estado})
+
 
 # @api_view(['GET'])
 

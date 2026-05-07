@@ -39,6 +39,26 @@ from .views import (
     producto_create,
     producto_edit,
     producto_delete,
+    # Marcas
+    marcas_list,
+    marca_create,
+    marca_edit,
+    marca_delete,
+    # Métodos de Pago
+    metodos_pago_list,
+    metodo_pago_create,
+    metodo_pago_edit,
+    metodo_pago_delete,
+    # Tipos de Servicio
+    tipos_servicio_list,
+    tipo_servicio_create,
+    tipo_servicio_edit,
+    tipo_servicio_delete,
+    # Estados de Servicio
+    estados_servicio_list,
+    estado_servicio_create,
+    estado_servicio_edit,
+    estado_servicio_delete,
 )
 
 urlpatterns = [
@@ -81,4 +101,24 @@ urlpatterns = [
     path('productos/create/', producto_create, name='producto_create'),
     path('productos/<int:pk>/edit/', producto_edit, name='producto_edit'),
     path('productos/<int:pk>/delete/', producto_delete, name='producto_delete'),
+    # Marcas
+    path('marcas/', marcas_list, name='marcas_list'),
+    path('marcas/create/', marca_create, name='marca_create'),
+    path('marcas/<int:pk>/edit/', marca_edit, name='marca_edit'),
+    path('marcas/<int:pk>/delete/', marca_delete, name='marca_delete'),
+    # Métodos de Pago
+    path('metodos-pago/', metodos_pago_list, name='metodos_pago_list'),
+    path('metodos-pago/create/', metodo_pago_create, name='metodo_pago_create'),
+    path('metodos-pago/<int:pk>/edit/', metodo_pago_edit, name='metodo_pago_edit'),
+    path('metodos-pago/<int:pk>/delete/', metodo_pago_delete, name='metodo_pago_delete'),
+    # Tipos de Servicio
+    path('tipos-servicio/', tipos_servicio_list, name='tipos_servicio_list'),
+    path('tipos-servicio/create/', tipo_servicio_create, name='tipo_servicio_create'),
+    path('tipos-servicio/<int:pk>/edit/', tipo_servicio_edit, name='tipo_servicio_edit'),
+    path('tipos-servicio/<int:pk>/delete/', tipo_servicio_delete, name='tipo_servicio_delete'),
+    # Estados de Servicio
+    path('estados-servicio/', estados_servicio_list, name='estados_servicio_list'),
+    path('estados-servicio/create/', estado_servicio_create, name='estado_servicio_create'),
+    path('estados-servicio/<int:pk>/edit/', estado_servicio_edit, name='estado_servicio_edit'),
+    path('estados-servicio/<int:pk>/delete/', estado_servicio_delete, name='estado_servicio_delete'),
 ]

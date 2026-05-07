@@ -4,187 +4,233 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Productos - Imperio del Reloj</title>
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
-        /* Estilos personalizados para resaltar productos con bajo stock */
+        body {
+            background-color: #f5f7fa;
+        }
+
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .table thead {
+            background-color: #212529;
+            color: white;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f1f3f5;
+            transition: 0.2s;
+        }
+
+        .btn {
+            border-radius: 8px;
+        }
+
+        .search-box {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .search-box input {
+            border: none;
+        }
+
+        .search-box input:focus {
+            box-shadow: none;
+        }
+
+        .title-section {
+            font-weight: 600;
+        }
+
         .stock-bajo {
-            background-color: #fff3cd; /* Color amarillo para advertencia */
+            background-color: #fff3cd !important;
         }
     </style>
 </head>
+
 <body>
-    <script>
-        // Verificar autenticación: si no hay tokens en localStorage, redirigir a login
-        function verificarAutenticacion() {
-            const accessToken = localStorage.getItem('access_token');
-            const refreshToken = localStorage.getItem('refresh_token');
-            if (!accessToken || !refreshToken) {
-                window.location.href = '/login/';
-            }
-        }
-        verificarAutenticacion();
-    </script>
 
-    <!-- Barra de navegación con enlaces a secciones principales -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/empleados/">Empleados</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/clientes/">Clientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/productos/">Productos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/tipos-productos/">Tipos de Producto</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/seguridad/">Seguridad</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-light ms-2" href="/logout/">Cerrar Sesión</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+<script>
+function verificarAutenticacion() {
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!accessToken || !refreshToken) {
+        window.location.href = '/login/';
+    }
+}
+verificarAutenticacion();
+</script>
 
-    <!-- Contenedor principal con la lista de productos -->
-    <div class="container mt-5">
-        <!-- Encabezado con título y botón para crear nuevo producto -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Inventario de Productos</h1>
-            <a href="{% url 'producto_create' %}" class="btn btn-success">+ Nuevo Producto</a>
-        </div>
-        <!-- Barra de búsqueda -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-dark text-white">
-                        <img src="https://www.pngkey.com/png/full/87-872187_lupa-search-icon-white-png.png" alt="Buscar" width="20" >
-                    </span>
-                    <input 
-                        type="text" 
-                        id="buscadorProductos" 
-                        class="form-control" 
-                        placeholder="Buscar por nombre, modelo o ID de producto..."
-                        onkeyup="filtrarProductos()"
-                    >
-                </div>
-            </div>
+<!-- NAVBAR -->
+{% include "core/nav.html" %}
+
+<!-- CONTENIDO -->
+<div class="container mt-5">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="title-section">Inventario de Productos</h2>
+            <small class="text-muted">Gestiona tu inventario y stock</small>
         </div>
 
-        <!-- Tabla que muestra todos los productos registrados -->
-        {% if productos %}
-        <div class="table-responsive">
-            <table class="table table-hover table-striped">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Modelo</th>
-                        <th>Marca</th>
-                        <th>Stock</th>
-                        <th>Precio Venta</th>
-                        <th>Costo</th>
-                        <th>Ganancia</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Itera sobre todos los productos y muestra su información en cada fila -->
-                    {% for producto in productos %}
-                    <!-- Fila resaltada en amarillo si el stock está bajo del mínimo requerido -->
-                    <tr {% if producto.stock_disponible_producto < producto.stock_minimo_producto %}class="stock-bajo"{% endif %}>
-                        <!-- ID único del producto -->
-                        <td><strong>{{ producto.codigo_producto }}</strong></td>
-                        
-                        <!-- Nombre del producto que se vende -->
-                        <td>{{ producto.nombre_producto }}</td>
-                        
-                        <!-- Modelo específico del producto -->
-                        <td>{{ producto.modelo_producto }}</td>
-                        
-                        <!-- Marca (fabricante) del producto -->
-                        <td>{{ producto.obtener_marca }}</td>
-                        
-                        <!-- Stock disponible con indicador de alerta si está bajo -->
-                        <td>
-                            {{ producto.stock_disponible_producto }}
-                            <!-- Ícono de advertencia si el stock está por debajo del mínimo -->
-                            {% if producto.stock_disponible_producto < producto.stock_minimo_producto %}
-                            <span class="badge bg-warning">BAJO</span>
-                            {% endif %}
-                            <br>
-                            <small class="text-muted">Mín: {{ producto.stock_minimo_producto }}</small>
-                        </td>
-                        
-                        <!-- Precio de venta al cliente (qué cobra el negocio) -->
-                        <td>${{ producto.precio_venta_producto }}</td>
-                        
-                        <!-- Precio de costo (qué cuesta el producto) -->
-                        <td>${{ producto.costo_producto }}</td>
-                        
-                        <!-- Ganancia neta por unidad vendida -->
-                        <td>
-                            <!-- Calcula la ganancia: precio venta - costo -->
-                            ${{ producto.precio_venta_producto|add:producto.costo_producto|stringformat:".2f" }}
-                        </td>
-                        
-                        <!-- Botones de acción: editar o eliminar -->
-                        <td>
-                            <!-- Botón para editar producto -->
-                            <a href="{% url 'producto_edit' producto.codigo_producto %}" class="btn btn-sm btn-warning">
-                                Editar
-                            </a>
-                            <!-- Botón para eliminar producto (muestra confirmación primero) -->
-                            <a href="{% url 'producto_delete' producto.codigo_producto %}" class="btn btn-sm btn-danger">
-                                Eliminar
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <!-- Mensaje si no hay productos registrados -->
-        <div class="alert alert-info">
-            No hay productos registrados. <a href="{% url 'producto_create' %}">Crear el primero</a>
-        </div>
-        {% endif %}
+        <a href="{% url 'producto_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nuevo Producto
+        </a>
+    </div>
 
-        <!-- Botón para volver al dashboard -->
-        <div class="mt-4">
-            <a href="/dashboard/" class="btn btn-secondary">← Volver</a>
+    <!-- BUSCADOR -->
+    <div class="card p-3 mb-4">
+        <div class="input-group search-box">
+            <span class="input-group-text bg-dark text-white">
+                <i class="bi bi-search"></i>
+            </span>
+            <input 
+                type="text" 
+                id="buscadorProductos" 
+                class="form-control"
+                placeholder="Buscar por nombre, modelo o ID..."
+                onkeyup="filtrarProductos()"
+            >
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function filtrarProductos() {
-            const input = document.getElementById("buscadorProductos");
-            const filtro = input.value.toLowerCase();
-            const filas = document.querySelectorAll("table tbody tr");
+    <!-- TABLA -->
+    <div class="card p-3">
 
-            filas.forEach(fila => {
-                const textoFila = fila.innerText.toLowerCase();
+        {% if productos %}
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Marca</th>
+                        <th>Stock</th>
+                        <th>Precios</th>
+                        <th>Ganancia</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
 
-                if (textoFila.includes(filtro)) {
-                    fila.style.display = "";
-                } else {
-                    fila.style.display = "none";
-                }
-            });
-        }
-    </script>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr {% if producto.stock_disponible_producto < producto.stock_minimo_producto %}class="stock-bajo"{% endif %}>
+
+                        <td class="fw-bold">
+                            {{ producto.codigo_producto }}
+                        </td>
+
+                        <td>
+                            <div class="fw-semibold">
+                                {{ producto.nombre_producto }}
+                            </div>
+                            <small class="text-muted">
+                                Modelo: {{ producto.modelo_producto }}
+                            </small>
+                        </td>
+
+                        <td>
+                            <span class="badge bg-secondary">
+                                {{ producto.obtener_marca }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <div>
+                                {{ producto.stock_disponible_producto }}
+
+                                {% if producto.stock_disponible_producto < producto.stock_minimo_producto %}
+                                <span class="badge bg-warning text-dark">BAJO</span>
+                                {% endif %}
+                            </div>
+
+                            <small class="text-muted">
+                                Mín: {{ producto.stock_minimo_producto }}
+                            </small>
+                        </td>
+
+                        <td>
+                            <div><strong>Venta:</strong> ${{ producto.precio_venta_producto }}</div>
+                            <div><strong>Costo:</strong> ${{ producto.costo_producto }}</div>
+                        </td>
+
+                        <td>
+                            <span class="badge bg-success">
+                                <!-- ⚠️ TEMPORAL: esto sigue mal hasta que lo arregles en backend -->
+                                ${{ producto.precio_venta_producto|add:producto.costo_producto }}
+                            </span>
+                        </td>
+
+                        <td class="text-center">
+                            <a href="{% url 'producto_edit' producto.codigo_producto %}" 
+                               class="btn btn-warning btn-sm me-1">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+
+                            <a href="{% url 'producto_delete' producto.codigo_producto %}" 
+                               class="btn btn-danger btn-sm">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+        {% else %}
+        <div class="text-center p-5">
+            <i class="bi bi-box-seam fs-1 text-muted"></i>
+            <h5 class="mt-3">No hay productos registrados</h5>
+            <p class="text-muted">Empieza agregando productos al inventario</p>
+            <a href="{% url 'producto_create' %}" class="btn btn-primary">
+                Crear Producto
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- VOLVER -->
+    <div class="mt-4">
+        <a href="/dashboard/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function filtrarProductos() {
+    const input = document.getElementById("buscadorProductos");
+    const filtro = input.value.toLowerCase();
+    const filas = document.querySelectorAll("table tbody tr");
+
+    filas.forEach(fila => {
+        const textoFila = fila.innerText.toLowerCase();
+        fila.style.display = textoFila.includes(filtro) ? "" : "none";
+    });
+}
+</script>
+
 </body>
 </html>

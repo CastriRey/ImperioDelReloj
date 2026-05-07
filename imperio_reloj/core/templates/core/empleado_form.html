@@ -4,146 +4,217 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Imperio del Reloj</title>
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <script>
-        function verificarAutenticacion() {
-            const accessToken = localStorage.getItem('access_token');
-            const refreshToken = localStorage.getItem('refresh_token');
-            if (!accessToken || !refreshToken) {
-                window.location.href = '/login/';
-            }
+
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f5f7fa;
         }
-        verificarAutenticacion();
-    </script>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/empleados/">Empleados</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/clientes/">Clientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/ventas/">Ventas</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/productos/">Productos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/seguridad/">Seguridad</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-light ms-2" href="/logout/">Cerrar Sesión</a>
-                    </li>
-                </ul>
-            </div>
+
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .btn {
+            border-radius: 8px;
+        }
+
+        .title-section {
+            font-weight: 600;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #0d6efd;
+        }
+
+        .dropdown-custom {
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .dropdown-custom li {
+            cursor: pointer;
+        }
+
+        .dropdown-custom li:hover {
+            background-color: #f1f3f5;
+        }
+    </style>
+</head>
+
+<body>
+
+<script>
+function verificarAutenticacion() {
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!accessToken || !refreshToken) {
+        window.location.href = '/login/';
+    }
+}
+verificarAutenticacion();
+</script>
+
+<!-- NAVBAR -->
+{% include "core/nav.html" %}
+
+<!-- CONTENIDO -->
+<div class="container mt-5">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="title-section">{{ title }}</h2>
+            <small class="text-muted">Gestiona la información del empleado</small>
         </div>
-    </nav>
-    <div class="container mt-5">
-        <h1>{{ title }}</h1>
+
+        <a href="{% url 'empleados_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <!-- FORM -->
+    <div class="card p-4">
+
         <form method="post">
             {% csrf_token %}
-            <div class="mb-3">
-                <label for="{{ form.identificacion_empleado.id_for_label }}" class="form-label">Identificación</label>
-                {{ form.identificacion_empleado }}
-            </div>
-            <div class="mb-3">
-                <label for="{{ form.nombre_empleado.id_for_label }}" class="form-label">Nombre</label>
-                {{ form.nombre_empleado }}
-            </div>
-            <div class="mb-3">
-                <label for="{{ form.primer_apellido_empleado.id_for_label }}" class="form-label">Primer Apellido</label>
-                {{ form.primer_apellido_empleado }}
-            </div>
-            <div class="mb-3">
-                <label for="{{ form.segundo_apellido_empleado.id_for_label }}" class="form-label">Segundo Apellido</label>
-                {{ form.segundo_apellido_empleado }}
-            </div>
-            <div class="mb-3">
-                <label for="{{ form.correo_empleado.id_for_label }}" class="form-label">Correo</label>
-                {{ form.correo_empleado }}
-            </div>
-            <div class="mb-3">
-                <label for="{{ form.telefono_empleado.id_for_label }}" class="form-label">Teléfono</label>
-                {{ form.telefono_empleado }}
-            </div>
-            <div class="mb-3">
-                <label for="{{ form.direccion_empleado.id_for_label }}" class="form-label">Dirección</label>
-                {{ form.direccion_empleado }}
-            </div>
-            <div class="mb-3">
-                <label for="{{ form.password.id_for_label }}" class="form-label">Contraseña</label>
-                {{ form.password }}
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Perfil</label>
-                <div class="position-relative">
-                    {{ form.profile_name }}
-                    <ul id="perfiles-dropdown" class="list-group position-absolute w-100" style="display: none; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
-                        {% for perfil in perfiles %}
-                            <li class="list-group-item perfil-item" data-perfil="{{ perfil.nombre_perfil }}">{{ perfil.nombre_perfil }}</li>
-                        {% endfor %}
-                    </ul>
+
+            <!-- FILA 1 -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Identificación</label>
+                    {{ form.identificacion_empleado }}
                 </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Nombre</label>
+                    {{ form.nombre_empleado }}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Primer Apellido</label>
+                    {{ form.primer_apellido_empleado }}
+                </div>
+            </div>
+
+            <!-- FILA 2 -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Segundo Apellido</label>
+                    {{ form.segundo_apellido_empleado }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Correo</label>
+                    {{ form.correo_empleado }}
+                </div>
+            </div>
+
+            <!-- FILA 3 -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Teléfono</label>
+                    {{ form.telefono_empleado }}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Dirección</label>
+                    {{ form.direccion_empleado }}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Contraseña</label>
+                    {{ form.password }}
+                </div>
+            </div>
+
+            <!-- PERFIL -->
+            <div class="mb-3 position-relative">
+                <label class="form-label">Perfil</label>
+                {{ form.profile_name }}
+
+                <ul id="perfiles-dropdown" class="list-group dropdown-custom">
+                    {% for perfil in perfiles %}
+                    <li class="list-group-item perfil-item" data-perfil="{{ perfil.nombre_perfil }}">
+                        {{ perfil.nombre_perfil }}
+                    </li>
+                    {% endfor %}
+                </ul>
+
                 {{ form.codigo_perfil_empleado }}
             </div>
-            <button type="submit" class="btn btn-primary">Guardar</button>
-            <a href="{% url 'empleados_list' %}" class="btn btn-secondary">Cancelar</a>
-            <button type="button" class="btn btn-light ms-2" onclick="history.back()">← Volver</button>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'empleados_list' %}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Guardar
+                </button>
+            </div>
+
         </form>
+
     </div>
-    <script>
-        // JavaScript para lista desplegable interactiva de perfiles con búsqueda
-        const profileInput = document.getElementById('id_profile_name');
-        const dropdown = document.getElementById('perfiles-dropdown');
-        const perfilItems = document.querySelectorAll('.perfil-item');
 
-        // Mostrar dropdown al dar click en el campo
-        profileInput.addEventListener('focus', function() {
-            dropdown.style.display = 'block';
-        });
+</div>
 
-        // Filtrar lista mientras se escribe
-        profileInput.addEventListener('input', function() {
-            const filter = this.value.toLowerCase();
-            let hasVisible = false;
-            
-            perfilItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter) || filter === '') {
-                    item.style.display = 'block';
-                    hasVisible = true;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
+<script>
+const profileInput = document.getElementById('id_profile_name');
+const dropdown = document.getElementById('perfiles-dropdown');
+const perfilItems = document.querySelectorAll('.perfil-item');
 
-            dropdown.style.display = hasVisible ? 'block' : 'none';
-        });
+profileInput.addEventListener('focus', () => {
+    dropdown.style.display = 'block';
+});
 
-        // Seleccionar perfil al hacer click
-        perfilItems.forEach(item => {
-            item.addEventListener('click', function() {
-                profileInput.value = this.textContent;
-                dropdown.style.display = 'none';
-            });
-        });
+profileInput.addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    let visible = false;
 
-        // Cerrar dropdown al hacer click fuera
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.mb-3')) {
-                dropdown.style.display = 'none';
-            }
-        });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    perfilItems.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        const match = text.includes(filter);
+        item.style.display = match ? 'block' : 'none';
+        if (match) visible = true;
+    });
+
+    dropdown.style.display = visible ? 'block' : 'none';
+});
+
+perfilItems.forEach(item => {
+    item.addEventListener('click', function() {
+        profileInput.value = this.textContent;
+        dropdown.style.display = 'none';
+    });
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.position-relative')) {
+        dropdown.style.display = 'none';
+    }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

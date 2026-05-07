@@ -4,290 +4,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Imperio del Reloj</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <script>
-        // Verificar autenticación: si no hay tokens, redirigir a login
-        function verificarAutenticacion() {
-            const accessToken = localStorage.getItem('access_token');
-            const refreshToken = localStorage.getItem('refresh_token');
-            if (!accessToken || !refreshToken) {
-                window.location.href = '/login/';
-            }
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body { background-color: #f5f7fa; }
+
+        .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        verificarAutenticacion();
-    </script>
 
-    <!-- Barra de navegación -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/dashboard/">Imperio del Reloj</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/empleados/">Empleados</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/clientes/">Clientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/productos/">Productos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/tipos-productos/">Tipos de Producto</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/seguridad/">Seguridad</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-light ms-2" href="/logout/">Cerrar Sesión</a>
-                    </li>
-                </ul>
-            </div>
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #0d6efd;
+        }
+
+        .dropdown-custom {
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .dropdown-custom li {
+            cursor: pointer;
+        }
+
+        .dropdown-custom li:hover {
+            background-color: #f1f3f5;
+        }
+    </style>
+</head>
+
+<body>
+
+<script>
+function verificarAutenticacion() {
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!accessToken || !refreshToken) {
+        window.location.href = '/login/';
+    }
+}
+verificarAutenticacion();
+</script>
+
+<!-- NAVBAR -->
+{% include "core/nav.html" %}
+
+<!-- CONTENIDO -->
+<div class="container mt-5">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>{{ title }}</h2>
+            <small class="text-muted">Gestión de productos e inventario</small>
         </div>
-    </nav>
 
-    <!-- Contenedor principal con el formulario de producto -->
-    <div class="container mt-5">
-        <!-- Encabezado indicando si es crear o editar -->
-        <h1>{{ title }}</h1>
+        <a href="{% url 'productos_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
 
-        <!-- Formulario para crear/editar producto -->
-        <form method="post" class="mt-4">
-            {% csrf_token %}
+    <form method="post">
+        {% csrf_token %}
 
-            <!-- Incluir errores generales del formulario si existen -->
-            {% if form.non_field_errors %}
-            <div class="alert alert-danger">
-                {% for error in form.non_field_errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-            </div>
-            {% endif %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
 
-            <!-- Sección de información básica del producto -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5>Información Básica</h5>
-                </div>
-                <div class="card-body">
-                            {% if producto %}
-                    <div class="mb-3">
-                        <label class="form-label">Código Producto</label>
-                        <input type="text" class="form-control" value="{{ producto.codigo_producto }}" readonly>
+        <!-- CARD PRINCIPAL -->
+        <div class="card p-4">
+
+            <!-- INFORMACIÓN BÁSICA -->
+            <div class="mb-4">
+                <div class="section-title bg-dark text-white p-2 rounded">Información Básica</div>
+
+                <div class="row">
+                    {% if producto %}
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Código</label>
+                        <input class="form-control" value="{{ producto.codigo_producto }}" readonly>
                     </div>
                     {% endif %}
 
-                    <!-- Campo: Nombre del producto (descripción general) -->
-                    <div class="mb-3">
-                        <label for="{{ form.nombre_producto.id_for_label }}" class="form-label">Nombre</label>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Nombre</label>
                         {{ form.nombre_producto }}
-                        {% if form.nombre_producto.errors %}
-                        <div class="text-danger">{{ form.nombre_producto.errors }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Campo: Modelo específico del producto -->
-                    <div class="mb-3">
-                        <label for="{{ form.modelo_producto.id_for_label }}" class="form-label">Modelo</label>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Modelo</label>
                         {{ form.modelo_producto }}
-                        {% if form.modelo_producto.errors %}
-                        <div class="text-danger">{{ form.modelo_producto.errors }}</div>
-                        {% endif %}
                     </div>
+                </div>
 
-                    <!-- Campo: Marca (fabricante) del producto -->
-                    <div class="mb-3 position-relative">
-                        <label for="{{ form.marca_nombre.id_for_label }}" class="form-label">Marca</label>
+                <div class="row">
+                    <div class="col-md-6 mb-3 position-relative">
+                        <label class="form-label">Marca</label>
                         {{ form.marca_nombre }}
-                        <ul id="marcas-dropdown" class="list-group position-absolute w-100" style="display: none; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
+
+                        <ul id="marcas-dropdown" class="list-group dropdown-custom">
                             {% for marca in marcas %}
-                                <li class="list-group-item marca-item" data-codigo="{{ marca.codigo_marca }}">{{ marca.nombre_marca }}</li>
+                            <li class="list-group-item marca-item" data-codigo="{{ marca.codigo_marca }}">
+                                {{ marca.nombre_marca }}
+                            </li>
                             {% endfor %}
                         </ul>
+
                         {{ form.codigo_marca }}
-                        {% if form.marca_nombre.errors %}
-                        <div class="text-danger">{{ form.marca_nombre.errors }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Campo: Tipo de producto (categoría: reloj, repuesto, servicio, etc.) -->
-                    <div class="mb-3 position-relative">
-                        <label for="{{ form.tipo_producto_nombre.id_for_label }}" class="form-label">Tipo de Producto</label>
+                    <div class="col-md-6 mb-3 position-relative">
+                        <label class="form-label">Tipo</label>
                         {{ form.tipo_producto_nombre }}
-                        <ul id="tipos-dropdown" class="list-group position-absolute w-100" style="display: none; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
+
+                        <ul id="tipos-dropdown" class="list-group dropdown-custom">
                             {% for tipo in tipos %}
-                                <li class="list-group-item tipo-item" data-codigo="{{ tipo.codigo_tipo_producto }}">{{ tipo.nombre_tipo_producto }}</li>
+                            <li class="list-group-item tipo-item" data-codigo="{{ tipo.codigo_tipo_producto }}">
+                                {{ tipo.nombre_tipo_producto }}
+                            </li>
                             {% endfor %}
                         </ul>
+
                         {{ form.codigo_tipo_producto }}
-                        {% if form.tipo_producto_nombre.errors %}
-                        <div class="text-danger">{{ form.tipo_producto_nombre.errors }}</div>
-                        {% endif %}
                     </div>
+                </div>
 
-                    <!-- Campo: Descripción detallada del producto -->
-                    <div class="mb-3">
-                        <label for="{{ form.descripcion_producto.id_for_label }}" class="form-label">Descripción</label>
-                        {{ form.descripcion_producto }}
-                        {% if form.descripcion_producto.errors %}
-                        <div class="text-danger">{{ form.descripcion_producto.errors }}</div>
-                        {% endif %}
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Descripción</label>
+                    {{ form.descripcion_producto }}
                 </div>
             </div>
 
-            <!-- Sección de información de precios -->
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5>Información de Precios</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Campo: Precio de costo (lo que cuesta comprar el producto) -->
-                    <div class="mb-3">
-                        <label for="{{ form.costo_producto.id_for_label }}" class="form-label">Costo</label>
+            <!-- PRECIOS -->
+            <div class="mb-4">
+                <div class="section-title bg-success text-white p-2 rounded">Precios</div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Costo</label>
                         {{ form.costo_producto }}
-                        <small class="text-muted">Lo que cuesta comprar este producto</small>
-                        {% if form.costo_producto.errors %}
-                        <div class="text-danger">{{ form.costo_producto.errors }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Campo: Precio de venta (lo que cobra el negocio) -->
-                    <div class="mb-3">
-                        <label for="{{ form.precio_venta_producto.id_for_label }}" class="form-label">Precio de Venta</label>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Precio Venta</label>
                         {{ form.precio_venta_producto }}
-                        <small class="text-muted">Lo que cobra el negocio por este producto</small>
-                        {% if form.precio_venta_producto.errors %}
-                        <div class="text-danger">{{ form.precio_venta_producto.errors }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Campo: Garantía del producto (en días o meses) -->
-                    <div class="mb-3">
-                        <label for="{{ form.garantia_producto.id_for_label }}" class="form-label">Garantía (Meses)</label>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Garantía (meses)</label>
                         {{ form.garantia_producto }}
-                        {% if form.garantia_producto.errors %}
-                        <div class="text-danger">{{ form.garantia_producto.errors }}</div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Sección de control de inventario -->
-            <div class="card mb-4">
-                <div class="card-header bg-warning text-dark">
-                    <h5>Control de Inventario</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Campo: Stock actual disponible -->
-                    <div class="mb-3">
-                        <label for="{{ form.stock_disponible_producto.id_for_label }}" class="form-label">Stock Disponible</label>
+            <!-- INVENTARIO -->
+            <div class="mb-3">
+                <div class="section-title bg-info text-white p-2 rounded">Inventario</div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Stock</label>
                         {{ form.stock_disponible_producto }}
-                        <small class="text-muted">Cantidad actual en inventario</small>
-                        {% if form.stock_disponible_producto.errors %}
-                        <div class="text-danger">{{ form.stock_disponible_producto.errors }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Campo: Stock mínimo (alerta si cae por debajo) -->
-                    <div class="mb-3">
-                        <label for="{{ form.stock_minimo_producto.id_for_label }}" class="form-label">Stock Mínimo</label>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Stock Mínimo</label>
                         {{ form.stock_minimo_producto }}
-                        <small class="text-muted">Cantidad mínima antes de generar alerta de reorden</small>
-                        {% if form.stock_minimo_producto.errors %}
-                        <div class="text-danger">{{ form.stock_minimo_producto.errors }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Campo: ¿Controla stock? (si/no) -->
-                    <div class="mb-3">
-                        <label for="{{ form.controla_stock.id_for_label }}" class="form-label">¿Controlar Stock?</label>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Controlar Stock</label>
                         {{ form.controla_stock }}
-                        <small class="text-muted">¿Este producto debe ser controlado en inventario?</small>
-                        {% if form.controla_stock.errors %}
-                        <div class="text-danger">{{ form.controla_stock.errors }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Campo: Última actualización del producto -->
-                    <div class="mb-3">
-                        <label for="{{ form.ultima_actualizacion_producto.id_for_label }}" class="form-label">Última Actualización</label>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Última Actualización</label>
                         {{ form.ultima_actualizacion_producto }}
-                        {% if form.ultima_actualizacion_producto.errors %}
-                        <div class="text-danger">{{ form.ultima_actualizacion_producto.errors }}</div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Botones de acción: guardar o cancelar -->
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Guardar Producto</button>
-                <a href="{% url 'productos_list' %}" class="btn btn-secondary">Cancelar</a>
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'productos_list' %}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Guardar
+                </button>
             </div>
-        </form>
-    </div>
 
-    <script>
-        const marcaInput = document.getElementById('id_marca_nombre');
-        const marcasDropdown = document.getElementById('marcas-dropdown');
-        const marcaItems = document.querySelectorAll('.marca-item');
-        const tipoInput = document.getElementById('id_tipo_producto_nombre');
-        const tiposDropdown = document.getElementById('tipos-dropdown');
-        const tipoItems = document.querySelectorAll('.tipo-item');
+        </div>
+    </form>
 
-        const toggleDropdown = (input, dropdown, items) => {
-            input.addEventListener('focus', () => {
-                dropdown.style.display = 'block';
-            });
+</div>
 
-            input.addEventListener('input', () => {
-                const filter = input.value.toLowerCase();
-                let hasVisible = false;
-                items.forEach(item => {
-                    const text = item.textContent.toLowerCase();
-                    if (text.includes(filter) || filter === '') {
-                        item.style.display = 'block';
-                        hasVisible = true;
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-                dropdown.style.display = hasVisible ? 'block' : 'none';
-            });
-        };
+<script>
+const setupDropdown = (inputId, dropdownId, itemClass, hiddenId) => {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    const items = document.querySelectorAll(itemClass);
 
-        toggleDropdown(marcaInput, marcasDropdown, marcaItems);
-        toggleDropdown(tipoInput, tiposDropdown, tipoItems);
+    input.addEventListener('focus', () => dropdown.style.display = 'block');
 
-        marcaItems.forEach(item => {
-            item.addEventListener('click', function() {
-                marcaInput.value = this.textContent.trim();
-                document.getElementById('id_codigo_marca').value = this.dataset.codigo;
-                marcasDropdown.style.display = 'none';
-            });
+    input.addEventListener('input', () => {
+        const filter = input.value.toLowerCase();
+        let visible = false;
+
+        items.forEach(item => {
+            const match = item.textContent.toLowerCase().includes(filter);
+            item.style.display = match ? 'block' : 'none';
+            if (match) visible = true;
         });
 
-        tipoItems.forEach(item => {
-            item.addEventListener('click', function() {
-                tipoInput.value = this.textContent.trim();
-                document.getElementById('id_codigo_tipo_producto').value = this.dataset.codigo;
-                tiposDropdown.style.display = 'none';
-            });
-        });
+        dropdown.style.display = visible ? 'block' : 'none';
+    });
 
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.position-relative')) {
-                marcasDropdown.style.display = 'none';
-                tiposDropdown.style.display = 'none';
-            }
+    items.forEach(item => {
+        item.addEventListener('click', function() {
+            input.value = this.textContent.trim();
+            document.getElementById(hiddenId).value = this.dataset.codigo;
+            dropdown.style.display = 'none';
         });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    });
+};
+
+setupDropdown('id_marca_nombre', 'marcas-dropdown', '.marca-item', 'id_codigo_marca');
+setupDropdown('id_tipo_producto_nombre', 'tipos-dropdown', '.tipo-item', 'id_codigo_tipo_producto');
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.position-relative')) {
+        document.querySelectorAll('.dropdown-custom').forEach(d => d.style.display = 'none');
+    }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
