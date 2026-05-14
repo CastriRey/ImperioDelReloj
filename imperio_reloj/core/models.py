@@ -167,6 +167,11 @@ class RelojCliente(models.Model):
     def __str__(self):
         """Representación del reloj del cliente"""
         return f"{self.codigo_marca} {self.modelo} - Cliente {self.codigo_cliente}"
+    
+    def obtener_marca(self):
+        """Retorna el nombre de la marca asociada al producto."""
+        marca = Marca.objects.filter(codigo_marca=self.codigo_marca).first()
+        return marca.nombre_marca if marca else "Marca desconocida"
 
     
 # =========================================================================================

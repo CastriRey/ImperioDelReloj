@@ -95,6 +95,9 @@ verificarAutenticacion();
         <form method="post">
             {% csrf_token %}
 
+            <!-- Campo oculto para el empleado actual -->
+            <input type="hidden" name="identificacion_empleado" id="id_identificacion_empleado" value="{{ current_user.identificacion_empleado|default:'' }}">
+
             {% if form.non_field_errors %}
             <div class="alert alert-danger">
                 {{ form.non_field_errors }}
@@ -138,21 +141,6 @@ verificarAutenticacion();
                     <label class="form-label">Teléfono</label>
                     {{ form.telefono_cliente }}
                 </div>
-
-                <div class="col-md-6 mb-3 position-relative">
-                    <label class="form-label">Empleado Asignado</label>
-                    {{ form.empleado_nombre }}
-
-                    <ul id="empleados-dropdown" class="list-group dropdown-custom">
-                        {% for empleado in empleados %}
-                        <li class="list-group-item empleado-item" data-codigo="{{ empleado.identificacion_empleado }}">
-                            {{ empleado.identificacion_empleado }} - {{ empleado.nombre_empleado }} {{ empleado.primer_apellido_empleado }}
-                        </li>
-                        {% endfor %}
-                    </ul>
-
-                    {{ form.identificacion_empleado }}
-                </div>
             </div>
 
             <!-- COMENTARIOS -->
@@ -178,40 +166,11 @@ verificarAutenticacion();
 </div>
 
 <script>
-const empleadoInput = document.getElementById('id_empleado_nombre');
-const empleadosDropdown = document.getElementById('empleados-dropdown');
-const empleadoItems = document.querySelectorAll('.empleado-item');
-
-empleadoInput.addEventListener('focus', () => {
-    empleadosDropdown.style.display = 'block';
-});
-
-empleadoInput.addEventListener('input', function() {
-    const filter = this.value.toLowerCase();
-    let visible = false;
-
-    empleadoItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        const match = text.includes(filter);
-        item.style.display = match ? 'block' : 'none';
-        if (match) visible = true;
-    });
-
-    empleadosDropdown.style.display = visible ? 'block' : 'none';
-    document.getElementById('id_identificacion_empleado').value = '';
-});
-
-empleadoItems.forEach(item => {
-    item.addEventListener('click', function() {
-        empleadoInput.value = this.textContent.trim();
-        document.getElementById('id_identificacion_empleado').value = this.dataset.codigo;
-        empleadosDropdown.style.display = 'none';
-    });
-});
-
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.position-relative')) {
-        empleadosDropdown.style.display = 'none';
+// Poblar el campo oculto con el ID del empleado actual desde localStorage
+document.addEventListener('DOMContentLoaded', function() {
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+        document.getElementById('id_identificacion_empleado').value = userId;
     }
 });
 </script>

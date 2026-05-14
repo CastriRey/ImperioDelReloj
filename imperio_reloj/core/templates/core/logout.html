@@ -27,6 +27,13 @@
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             localStorage.removeItem('usuario');
+            // Limpiar información del usuario
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('user_name');
+            localStorage.removeItem('user_primer_apellido');
+            localStorage.removeItem('user_correo');
+            localStorage.removeItem('user_perfil');
+            document.cookie = 'user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             // Redirigir a login
             window.location.href = '/login/';
         }

@@ -378,64 +378,15 @@ class ClienteForm(forms.ModelForm):
     Este formulario maneja:
     - Datos personales del cliente (nombre, apellidos)
     - Datos de contacto (correo, teléfono)
-    - Relación con un empleado
     - Comentarios internos
+    
+    El empleado asignado se establece automáticamente con el usuario logueado.
     """
-    empleado_nombre = forms.CharField(
-        required=True,
-        label='Empleado Asignado',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Escribe o selecciona un empleado',
-        })
-    )
-    identificacion_empleado = forms.IntegerField(
-        widget=forms.HiddenInput(),
-        required=False
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['identificacion_empleado'].required = False
-        if self.instance and self.instance.pk:
-            empleado = Empleado.objects.filter(identificacion_empleado=self.instance.identificacion_empleado).first()
-            if empleado:
-                self.initial['empleado_nombre'] = f"{empleado.identificacion_empleado} - {empleado.nombre_empleado} {empleado.primer_apellido_empleado}"
-                self.initial['identificacion_empleado'] = empleado.identificacion_empleado
-
-    def clean_empleado_nombre(self):
-        nombre = self.cleaned_data.get('empleado_nombre')
-        if not nombre:
-            raise forms.ValidationError('Selecciona un empleado válido.')
-
-        empleado = None
-        if ' - ' in nombre:
-            posible_codigo = nombre.split(' - ', 1)[0].strip()
-            if posible_codigo.isdigit():
-                empleado = Empleado.objects.filter(identificacion_empleado=int(posible_codigo)).first()
-
-        if not empleado:
-            empleado = Empleado.objects.filter(nombre_empleado__iexact=nombre).first()
-
-        if not empleado:
-            partes = nombre.strip().split()
-            if len(partes) >= 2:
-                empleado = Empleado.objects.filter(
-                    nombre_empleado__iexact=partes[0],
-                    primer_apellido_empleado__iexact=partes[1]
-                ).first()
-
-        if not empleado:
-            raise forms.ValidationError('Empleado no válido. Selecciona uno de los empleados existentes.')
-
-        self.cleaned_data['identificacion_empleado'] = empleado.identificacion_empleado
-        return nombre
 
     class Meta:
         model = Cliente
         fields = ['identificacion_cliente', 'nombre_cliente', 'primer_apellido_cliente', 
-                 'segundo_apellido_cliente', 'correo_cliente', 'telefono_cliente', 
-                 'identificacion_empleado', 'comentarios']
+                 'segundo_apellido_cliente', 'correo_cliente', 'telefono_cliente', 'comentarios']
         widgets = {
             'identificacion_cliente': forms.NumberInput(attrs={'class': 'form-control'}),
             'nombre_cliente': forms.TextInput(attrs={'class': 'form-control'}),
@@ -464,16 +415,24 @@ def cliente_create(request):
     
     - GET: Muestra el formulario en blanco
     - POST: Guarda el cliente si el formulario es válido
+    
+    El empleado asignado se obtiene automáticamente del usuario logueado.
     """
     if request.method == 'POST':
         form = ClienteForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('clientes_list')
+            cliente = form.save(commit=False)
+            # Asignar automáticamente el empleado actual
+            identificacion_empleado = request.POST.get('identificacion_empleado') or request.COOKIES.get('user_id') or request.session.get('user_id')
+            if identificacion_empleado:
+                cliente.identificacion_empleado = int(identificacion_empleado)
+                cliente.save()
+                return redirect('clientes_list')
+            else:
+                form.add_error(None, 'No se pudo determinar el empleado que registra el cliente. Por favor, inicia sesión de nuevo.')
     else:
         form = ClienteForm()
-    empleados = Empleado.objects.all()
-    return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Crear Cliente', 'empleados': empleados})
+    return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Crear Cliente'})
 
 
 def cliente_edit(request, pk):
@@ -482,17 +441,22 @@ def cliente_edit(request, pk):
     
     - GET: Muestra el formulario con los datos actuales del cliente
     - POST: Actualiza el cliente si el formulario es válido
+    
+    Al guardar, se actualiza el empleado asignado con el usuario actual.
     """
     cliente = get_object_or_404(Cliente, pk=pk)
     if request.method == 'POST':
         form = ClienteForm(request.POST, instance=cliente)
         if form.is_valid():
-            form.save()
+            cliente = form.save(commit=False)
+            identificacion_empleado = request.POST.get('identificacion_empleado') or request.COOKIES.get('user_id') or request.session.get('user_id')
+            if identificacion_empleado:
+                cliente.identificacion_empleado = int(identificacion_empleado)
+            cliente.save()
             return redirect('clientes_list')
     else:
         form = ClienteForm(instance=cliente)
-    empleados = Empleado.objects.all()
-    return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Editar Cliente', 'empleados': empleados})
+    return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Editar Cliente'})
 
 
 def cliente_delete(request, pk):
@@ -507,6 +471,155 @@ def cliente_delete(request, pk):
         cliente.delete()
         return redirect('clientes_list')
     return render(request, 'core/cliente_confirm_delete.html', {'cliente': cliente})
+
+
+# =========================================================================================
+# CRUD: RELOJES DEL CLIENTE (Interfaz Web)
+# =========================================================================================
+
+class RelojClienteForm(forms.ModelForm):
+    """
+    Formulario para crear y editar relojes de un cliente.
+    
+    Permite registrar los relojes que han pasado por el negocio.
+    """
+    # Campo visible para buscar/seleccionar marca
+    marca_search = forms.CharField(
+        required=True,
+        label='Marca',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar marca...',
+        })
+    )
+
+    class Meta:
+        model = RelojCliente
+        fields = ['codigo_marca', 'modelo', 'descripcion_reloj']
+        widgets = {
+            'codigo_marca': forms.HiddenInput(),  # Campo oculto para el ID real
+            'modelo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Submariner, Speedmaster'}),
+            'descripcion_reloj': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción detallada del reloj'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Cuando se edita, establecer el nombre de la marca en el campo de búsqueda
+        if self.instance and self.instance.pk:
+            marca = Marca.objects.filter(codigo_marca=self.instance.codigo_marca).first()
+            self.initial['marca_search'] = f"{self.instance.codigo_marca} - {marca.nombre_marca}" if marca else str(self.instance.codigo_marca)
+
+    def clean_marca_search(self):
+        """Validar y convertir el nombre de marca al código correspondiente"""
+        marca_search = self.cleaned_data.get('marca_search')
+        if not marca_search:
+            raise forms.ValidationError("Debe seleccionar una marca válida.")
+
+        # Intentar extraer el código de la cadena "ID - Nombre"
+        try:
+            if ' - ' in marca_search:
+                codigo_str = marca_search.split(' - ')[0].strip()
+                codigo = int(codigo_str)
+            else:
+                # Si no tiene el formato, buscar por nombre exacto
+                marca = Marca.objects.filter(nombre_marca__iexact=marca_search.strip()).first()
+                if marca:
+                    codigo = marca.codigo_marca
+                else:
+                    raise forms.ValidationError("Marca no encontrada.")
+
+            # Verificar que la marca existe
+            marca = Marca.objects.filter(codigo_marca=codigo).first()
+            if not marca:
+                raise forms.ValidationError("Marca no encontrada.")
+
+            # Establecer el código en el campo oculto
+            self.cleaned_data['codigo_marca'] = str(codigo)
+            return marca_search
+
+        except (ValueError, IndexError):
+            raise forms.ValidationError("Formato de marca inválido. Use el selector de marcas.")
+
+
+def relojes_cliente_list(request, cliente_id):
+    """
+    Vista que lista todos los relojes registrados para un cliente específico.
+    
+    Muestra los relojes que han pasado por el negocio de ese cliente.
+    """
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+    relojes = RelojCliente.objects.filter(codigo_cliente=cliente_id)
+    return render(request, 'core/relojes_cliente_list.html', {
+        'cliente': cliente,
+        'relojes': relojes
+    })
+
+
+def relojes_cliente_create(request, cliente_id):
+    """
+    Vista para crear un nuevo reloj para un cliente específico.
+    
+    Registra un reloj que pertenece al cliente.
+    """
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+    if request.method == 'POST':
+        form = RelojClienteForm(request.POST)
+        if form.is_valid():
+            reloj = form.save(commit=False)
+            reloj.codigo_cliente = cliente_id
+            reloj.codigo_reloj_cliente = obtener_siguiente_valor('SEQ_RELOJES_CLIENTE')
+            reloj.save()
+            return redirect('relojes_cliente_list', cliente_id=cliente_id)
+    else:
+        form = RelojClienteForm()
+    marcas = Marca.objects.all()
+    return render(request, 'core/relojes_cliente_form.html', {
+        'form': form,
+        'cliente': cliente,
+        'title': 'Crear Reloj del Cliente',
+        'marcas': marcas
+    })
+
+
+def relojes_cliente_edit(request, cliente_id, reloj_id):
+    """
+    Vista para editar un reloj existente de un cliente.
+    
+    Permite modificar la información de un reloj registrado.
+    """
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+    reloj = get_object_or_404(RelojCliente, pk=reloj_id, codigo_cliente=cliente_id)
+    if request.method == 'POST':
+        form = RelojClienteForm(request.POST, instance=reloj)
+        if form.is_valid():
+            form.save()
+            return redirect('relojes_cliente_list', cliente_id=cliente_id)
+    else:
+        form = RelojClienteForm(instance=reloj)
+    marcas = Marca.objects.all()
+    return render(request, 'core/relojes_cliente_form.html', {
+        'form': form,
+        'cliente': cliente,
+        'title': 'Editar Reloj del Cliente',
+        'marcas': marcas
+    })
+
+
+def relojes_cliente_delete(request, cliente_id, reloj_id):
+    """
+    Vista para eliminar un reloj de un cliente.
+    
+    Elimina el registro del reloj del cliente.
+    """
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+    reloj = get_object_or_404(RelojCliente, pk=reloj_id, codigo_cliente=cliente_id)
+    if request.method == 'POST':
+        reloj.delete()
+        return redirect('relojes_cliente_list', cliente_id=cliente_id)
+    return render(request, 'core/relojes_cliente_confirm_delete.html', {
+        'cliente': cliente,
+        'reloj': reloj
+    })
 
 
 # =========================================================================================
@@ -1014,6 +1127,7 @@ def login_empleado(request):
             "empleado": {
                 "id": empleado.identificacion_empleado,
                 "nombre": empleado.nombre_empleado,
+                "primer_apellido": empleado.primer_apellido_empleado,
                 "correo": empleado.correo_empleado,
                 "perfil": empleado.codigo_perfil_empleado
             },

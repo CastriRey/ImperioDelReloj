@@ -4,87 +4,354 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Imperio del Reloj</title>
-    <!-- Bootstrap CSS -->
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <div class="container">
-        <div class="row justify-content-center mt-5">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header text-center">
-                        <h4>Inicio de Sesión</h4>
-                        <p>Imperio del Reloj</p>
-                    </div>
-                    <div class="card-body">
-                        <div id="error-message" class="alert alert-danger" style="display: none;" role="alert"></div>
-                        <form id="login-form">
-                            <div class="mb-3">
-                                <label for="correo" class="form-label">Correo Electrónico</label>
-                                <input type="email" class="form-control" id="correo" name="correo" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="contrasena" class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" id="contrasena" name="contrasena" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+
+        *{
+            font-family: 'Poppins', sans-serif;
         }
 
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const correo = document.getElementById('correo').value;
-            const contrasena = document.getElementById('contrasena').value;
-            const errorMessage = document.getElementById('error-message');
-            const csrftoken = getCookie('csrftoken');
+        body{
+            min-height:100vh;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+            position:relative;
+        }
 
-            fetch('/api/login/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({ correo, contrasena })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    errorMessage.textContent = data.error;
-                    errorMessage.style.display = 'block';
-                } else {
-                    // Guardar tokens
-                    localStorage.setItem('access_token', data.access);
-                    localStorage.setItem('refresh_token', data.refresh);
-                    // Redirigir a dashboard o página principal
-                    window.location.href = '/dashboard/'; // Cambiar según necesidad
+        /* Fondo decorativo */
+        body::before{
+            content:'';
+            position:absolute;
+            width:500px;
+            height:500px;
+            background:rgba(255,255,255,0.05);
+            border-radius:50%;
+            top:-150px;
+            left:-150px;
+        }
+
+        body::after{
+            content:'';
+            position:absolute;
+            width:400px;
+            height:400px;
+            background:rgba(255,255,255,0.04);
+            border-radius:50%;
+            bottom:-120px;
+            right:-120px;
+        }
+
+        .login-card{
+            width:100%;
+            max-width:430px;
+            border:none;
+            border-radius:20px;
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            overflow:hidden;
+            position:relative;
+            z-index:10;
+        }
+
+        .login-header{
+            text-align:center;
+            padding:35px 30px 20px;
+            color:white;
+        }
+
+        .logo-circle{
+            width:90px;
+            height:90px;
+            background: linear-gradient(135deg,#facc15,#eab308);
+            border-radius:50%;
+            margin:0 auto 20px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow:0 4px 20px rgba(250,204,21,0.4);
+        }
+
+        .logo-circle i{
+            font-size:42px;
+            color:#111827;
+        }
+
+        .login-header h2{
+            font-weight:700;
+            margin-bottom:5px;
+        }
+
+        .login-header p{
+            color:#cbd5e1;
+            margin:0;
+        }
+
+        .card-body{
+            padding:30px;
+        }
+
+        .form-label{
+            color:white;
+            font-weight:500;
+        }
+
+        .form-control{
+            height:50px;
+            border-radius:12px;
+            border:none;
+            background: rgba(255,255,255,0.12);
+            color:white;
+            padding-left:45px;
+        }
+
+        .form-control:focus{
+            background: rgba(255,255,255,0.18);
+            color:white;
+            box-shadow:none;
+            border:1px solid #facc15;
+        }
+
+        .form-control::placeholder{
+            color:#cbd5e1;
+        }
+
+        .input-group{
+            position:relative;
+        }
+
+        .input-icon{
+            position:absolute;
+            top:50%;
+            left:15px;
+            transform:translateY(-50%);
+            color:#cbd5e1;
+            z-index:10;
+        }
+
+        .btn-login{
+            height:50px;
+            border:none;
+            border-radius:12px;
+            background: linear-gradient(135deg,#facc15,#eab308);
+            color:#111827;
+            font-weight:600;
+            transition:0.3s;
+        }
+
+        .btn-login:hover{
+            transform:translateY(-2px);
+            box-shadow:0 5px 15px rgba(250,204,21,0.4);
+        }
+
+        .alert{
+            border-radius:12px;
+        }
+
+        .footer-text{
+            text-align:center;
+            color:#cbd5e1;
+            margin-top:20px;
+            font-size:14px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="login-card">
+
+    <div class="login-header">
+
+        <div class="logo-circle">
+            <i class="bi bi-watch"></i>
+        </div>
+
+        <h2>Imperio del Reloj</h2>
+        <p>Inicia sesión para continuar</p>
+
+    </div>
+
+    <div class="card-body">
+
+        <div id="error-message" 
+             class="alert alert-danger" 
+             style="display:none;" 
+             role="alert">
+        </div>
+
+        <form id="login-form">
+
+            <!-- Correo -->
+            <div class="mb-4">
+
+                <label for="correo" class="form-label">
+                    Correo Electrónico
+                </label>
+
+                <div class="input-group">
+
+                    <i class="bi bi-envelope-fill input-icon"></i>
+
+                    <input 
+                        type="email"
+                        class="form-control"
+                        id="correo"
+                        name="correo"
+                        placeholder="correo@ejemplo.com"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+            <!-- Contraseña -->
+            <div class="mb-4">
+
+                <label for="contrasena" class="form-label">
+                    Contraseña
+                </label>
+
+                <div class="input-group">
+
+                    <i class="bi bi-lock-fill input-icon"></i>
+
+                    <input 
+                        type="password"
+                        class="form-control"
+                        id="contrasena"
+                        name="contrasena"
+                        placeholder="********"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+            <!-- Botón -->
+            <button type="submit" class="btn btn-login w-100">
+                <i class="bi bi-box-arrow-in-right"></i>
+                Iniciar Sesión
+            </button>
+
+        </form>
+
+        <div class="footer-text">
+            Sistema de gestión relojera
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+    function getCookie(name) {
+        let cookieValue = null;
+
+        if (document.cookie && document.cookie !== '') {
+
+            const cookies = document.cookie.split(';');
+
+            for (let i = 0; i < cookies.length; i++) {
+
+                const cookie = cookies[i].trim();
+
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+
                 }
-            })
-            .catch(error => {
-                errorMessage.textContent = 'Error de conexión';
+            }
+        }
+
+        return cookieValue;
+    }
+
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+
+        e.preventDefault();
+
+        const correo = document.getElementById('correo').value;
+        const contrasena = document.getElementById('contrasena').value;
+
+        const errorMessage = document.getElementById('error-message');
+
+        const csrftoken = getCookie('csrftoken');
+
+        fetch('/api/login/', {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+
+            body: JSON.stringify({ correo, contrasena })
+
+        })
+
+        .then(response => response.json())
+
+        .then(data => {
+
+            if (data.error) {
+
+                errorMessage.textContent = data.error;
                 errorMessage.style.display = 'block';
-            });
+
+            } else {
+
+                // Almacenar tokens
+                localStorage.setItem('access_token', data.access);
+                localStorage.setItem('refresh_token', data.refresh);
+
+                // Almacenar información del empleado
+                if (data.empleado) {
+                    localStorage.setItem('user_id', data.empleado.id);
+                    localStorage.setItem('user_name', data.empleado.nombre);
+                    localStorage.setItem('user_primer_apellido', data.empleado.primer_apellido);
+                    localStorage.setItem('user_correo', data.empleado.correo);
+                    localStorage.setItem('user_perfil', data.empleado.perfil);
+                    document.cookie = "user_id=" + encodeURIComponent(data.empleado.id) + "; path=/";
+                }
+
+                window.location.href = '/dashboard/';
+
+            }
+
+        })
+
+        .catch(error => {
+
+            errorMessage.textContent = 'Error de conexión';
+            errorMessage.style.display = 'block';
+
         });
-    </script>
+
+    });
+
+</script>
+
 </body>
 </html>

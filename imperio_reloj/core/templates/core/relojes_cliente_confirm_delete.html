@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliminar Reloj - Imperio del Reloj</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .cliente-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Verificar autenticación: si no hay tokens, redirigir a login
+        function verificarAutenticacion() {
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!accessToken || !refreshToken) {
+                window.location.href = '/login/';
+            }
+        }
+        verificarAutenticacion();
+    </script>
+
+    <!-- Barra de navegación -->
+    {% include "core/nav.html" %}
+
+    <!-- Contenedor con el formulario de confirmación -->
+    <div class="container mt-5">
+
+        <!-- INFO DEL CLIENTE -->
+        <div class="cliente-info">
+            <h5 class="mb-1">
+                <i class="bi bi-person-circle"></i> {{ cliente.nombre_cliente }} {{ cliente.primer_apellido_cliente }} {{ cliente.segundo_apellido_cliente|default:'' }}
+            </h5>
+            <small>Cédula: {{ cliente.identificacion_cliente }}</small>
+        </div>
+
+        <!-- Tarjeta de confirmación de eliminación -->
+        <div class="card border-danger" style="max-width: 600px; margin: 0 auto;">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h5>
+            </div>
+            <div class="card-body">
+                <!-- Mensaje de advertencia indicando qué se va a eliminar -->
+                <p>¿Está seguro de que desea eliminar este reloj del cliente?</p>
+
+                <!-- Información del reloj a eliminar -->
+                <div class="alert alert-warning">
+                    <strong>Reloj ID:</strong> {{ reloj.codigo_reloj_cliente }}<br>
+                    <strong>Marca:</strong> {{ reloj.codigo_marca }}<br>
+                    <strong>Modelo:</strong> {{ reloj.modelo|default:'Sin modelo' }}<br>
+                    <strong>Descripción:</strong> {{ reloj.descripcion_reloj|default:'Sin descripción' }}
+                </div>
+
+                <!-- Advertencia importante sobre la eliminación permanente -->
+                <p class="text-danger"><strong>Esta acción no se puede deshacer.</strong></p>
+            </div>
+            <div class="card-footer d-flex gap-2">
+                <!-- Formulario POST para confirmar la eliminación -->
+                <form method="post" style="flex: 1;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-trash"></i> Eliminar Definitivamente
+                    </button>
+                </form>
+                <!-- Botón para cancelar la eliminación -->
+                <a href="{% url 'relojes_cliente_list' cliente.identificacion_cliente %}" class="btn btn-secondary flex-grow-1">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -29,6 +29,11 @@ from .views import (
     cliente_create,
     cliente_edit,
     cliente_delete,
+    # Relojes del Cliente
+    relojes_cliente_list,
+    relojes_cliente_create,
+    relojes_cliente_edit,
+    relojes_cliente_delete,
     # Tipos de Producto
     tipos_producto_list,
     tipo_producto_create,
@@ -91,6 +96,11 @@ urlpatterns = [
     path('clientes/create/', cliente_create, name='cliente_create'),
     path('clientes/<int:pk>/edit/', cliente_edit, name='cliente_edit'),
     path('clientes/<int:pk>/delete/', cliente_delete, name='cliente_delete'),
+    # Relojes del Cliente
+    path('clientes/<int:cliente_id>/relojes/', relojes_cliente_list, name='relojes_cliente_list'),
+    path('clientes/<int:cliente_id>/relojes/create/', relojes_cliente_create, name='relojes_cliente_create'),
+    path('clientes/<int:cliente_id>/relojes/<int:reloj_id>/edit/', relojes_cliente_edit, name='relojes_cliente_edit'),
+    path('clientes/<int:cliente_id>/relojes/<int:reloj_id>/delete/', relojes_cliente_delete, name='relojes_cliente_delete'),
     # Tipos de Producto
     path('tipos-productos/', tipos_producto_list, name='tipos_producto_list'),
     path('tipos-productos/create/', tipo_producto_create, name='tipo_producto_create'),
